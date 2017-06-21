@@ -205,7 +205,7 @@ namespace Conversational_Machining_App
             double[] coord3 = new double[2];
             double[] coord4 = new double[2];
             double boundaryX = 10 * boundaryWidth();
-            double boundaryY = 10 * boundaryHeight();
+            double boundaryY = 10 * boundaryHeight();  
 
             if (epx-spx==0)
             {
