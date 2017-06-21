@@ -1,0 +1,9 @@
+C:\Users\Adam Clark\Documents\Visual Studio 2015\Projects\Conversational Machining App\Conversational Machining App\bin\Release\Conversational Machining App.exe.config
+C:\Users\Adam Clark\Documents\Visual Studio 2015\Projects\Conversational Machining App\Conversational Machining App\bin\Release\Conversational Machining App.exe
+C:\Users\Adam Clark\Documents\Visual Studio 2015\Projects\Conversational Machining App\Conversational Machining App\bin\Release\Conversational Machining App.pdb
+C:\Users\Adam Clark\Documents\Visual Studio 2015\Projects\Conversational Machining App\Conversational Machining App\obj\Release\Conversational Machining App.csprojResolveAssemblyReference.cache
+C:\Users\Adam Clark\Documents\Visual Studio 2015\Projects\Conversational Machining App\Conversational Machining App\obj\Release\Conversational_Machining_App.Form1.resources
+C:\Users\Adam Clark\Documents\Visual Studio 2015\Projects\Conversational Machining App\Conversational Machining App\obj\Release\Conversational_Machining_App.Properties.Resources.resources
+C:\Users\Adam Clark\Documents\Visual Studio 2015\Projects\Conversational Machining App\Conversational Machining App\obj\Release\Conversational Machining App.csproj.GenerateResource.Cache
+C:\Users\Adam Clark\Documents\Visual Studio 2015\Projects\Conversational Machining App\Conversational Machining App\obj\Release\Conversational Machining App.exe
+C:\Users\Adam Clark\Documents\Visual Studio 2015\Projects\Conversational Machining App\Conversational Machining App\obj\Release\Conversational Machining App.pdb
