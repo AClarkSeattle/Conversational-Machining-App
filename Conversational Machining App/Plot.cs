@@ -64,10 +64,13 @@ namespace TestForm
 
             Pen yellowPen = new Pen(Color.Yellow);
             Pen whitePen = new Pen(Color.White);
+            Pen lightgreenPen = new Pen(Color.LightGreen);
             yellowPen.Width = 1f;
             whitePen.Width = 1f;
+            lightgreenPen.Width = 1f;
             yellowPen.Alignment = PenAlignment.Center;
             whitePen.Alignment = PenAlignment.Center;
+            lightgreenPen.Alignment = PenAlignment.Center;
 
             if (lines != null)
             {
@@ -95,13 +98,24 @@ namespace TestForm
 
             if (vlines != null)
             {
+                int count = 0;
+                int ttlOffsLine = vlines.Count;
                 foreach (List<double[]> vlinept in vlines)
                 {
                     int x1 = (int)((vlinept[0][0]) * scalefactor) + dx0;
                     int y1 = (int)((-vlinept[0][1]) * scalefactor) + dy0;
                     int x2 = (int)((vlinept[1][0]) * scalefactor) + dx0;
                     int y2 = (int)((-vlinept[1][1]) * scalefactor) + dy0;
-                    e.Graphics.DrawLine(whitePen, x1, y1, x2, y2);
+                    count++;
+
+                    if (count<ttlOffsLine)
+                    {
+                        e.Graphics.DrawLine(whitePen, x1, y1, x2, y2);
+                    }
+                    else
+                    {
+                        e.Graphics.DrawLine(lightgreenPen, x1, y1, x2, y2);
+                    }               
                 }
             }
             base.OnPaint(e);
