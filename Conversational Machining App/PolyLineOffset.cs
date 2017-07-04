@@ -8,26 +8,42 @@ namespace Conversational_Machining_App
 {
     class PolyLineOffset
     {
+        public double[] xVal { get; set; }
+        public double[] yVal { get; set; }
         public bool offsetInside = true;
         public double toolR = .25;
-        public double finishPass = 0;
+        public double finishPass = .1;
         public List<string[]> DXFlines = new List<string[]>();
         public List<List<double[]>> lines = new List<List<double[]>>();
         public List<List<double[]>> offsetLines = new List<List<double[]>>();
-        public double[] xVal { get; set; }
-        public double[] yVal { get; set; }
         double width = 0;
         double height = 0;
         double flipUVector = 1;
         double flipVVector = 1;
+        double greaterBoundary = 5000;
+        double ttlOffsetDist = 2.0;
 
-        public void createOffsetLines()
+        public void createPath()
+        {
+            double offset = 0;
+            int offsetCount = 1;
+            createOffsetLines(toolR);
+            while(offset<=ttlOffsetDist)
+            {
+                offset = toolR * offsetCount + finishPass;
+                offsetCount++;
+                createOffsetLines(offset);
+            }   
+        }
+
+        public void createOffsetLines(double offset)
         {
             width = boundaryWidth();
             height = boundaryHeight();
-            double greaterBoundary = (width >= height) ? width * 10 : height * 10;
+            greaterBoundary = (width >= height) ? width * 50 : height * 50;
 
             double[,] tmplinearray = new double[lines.Count, 4];
+
             int i = 0;
             foreach (List<double[]> line in lines)
             {
@@ -54,7 +70,7 @@ namespace Conversational_Machining_App
                 vertexPt = getVertexPt(tmplinearray[j, 0], tmplinearray[j, 1], tmplinearray[j, 2], tmplinearray[j, 3], tmplinearray[j + 1, 0],
                     tmplinearray[j + 1, 1], tmplinearray[j + 1, 2], tmplinearray[j + 1, 3]);
 
-                lineCoordinates = OffsetLineCoordinates(tmplinearray[j, 0], tmplinearray[j, 1], tmplinearray[j, 2], tmplinearray[j, 3], toolR + finishPass);
+                lineCoordinates = OffsetLineCoordinates(tmplinearray[j, 0], tmplinearray[j, 1], tmplinearray[j, 2], tmplinearray[j, 3], offset);
 
                 u = unitvector(tmplinearray[j, 0], tmplinearray[j, 1], tmplinearray[j, 2], tmplinearray[j, 3], true);
                 //Correct u orientation
@@ -88,7 +104,7 @@ namespace Conversational_Machining_App
                     vertexPt_first = getVertexPt(tmplinearray[0, 0], tmplinearray[0, 1], tmplinearray[0, 2], tmplinearray[0, 3], tmplinearray[last, 0],
                     tmplinearray[last, 1], tmplinearray[last, 2], tmplinearray[last, 3]);
 
-                    lineCoordinates_last = OffsetLineCoordinates(tmplinearray[last, 0], tmplinearray[last, 1], tmplinearray[last, 2], tmplinearray[last, 3], toolR + finishPass);
+                    lineCoordinates_last = OffsetLineCoordinates(tmplinearray[last, 0], tmplinearray[last, 1], tmplinearray[last, 2], tmplinearray[last, 3], offset);
 
                     u_last = unitvector(tmplinearray[0, 0], tmplinearray[0, 1], tmplinearray[0, 2], tmplinearray[0, 3], true);
                     //Correct u orientation
@@ -142,7 +158,7 @@ namespace Conversational_Machining_App
             tmpIntersectionCase3 = segmentIntersectionCoordinates(offsetLine2Start, offsetLine2End, vertex, bisectorEndPtPlus);
             tmpIntersectionCase4 = segmentIntersectionCoordinates(offsetLine2Start, offsetLine2End, vertex, bisectorEndPtMinus);
 
-            int precision = 6;
+            int precision = 8;
             decimal lclXPt = 0;
             decimal lclYPt = 0;
             if (offsetInside == true)
@@ -230,20 +246,43 @@ namespace Conversational_Machining_App
         {
             //if odd return false
             //if even return true
+            double tolerance = .00001;
+            double differenceXsp = 0;
+            double differenceYsp = 0;
+            double differenceXep = 0;
+            double differenceYep = 0;
+            double[] intersectionPoint = new double[2];
             double[] startpt = new double[2];
             double[] endpt = new double[2];
+            double[] extPt = new double[2];
+            extPt[0] = Math.Abs(testpt[0] * greaterBoundary * 10);
+            extPt[1] = testpt[1];
             int i = 0;
+            int endPtIntersectionCount = 0;
             foreach (List<double[]> line in lines)
             {
                 startpt[0] = line[0][0];
                 startpt[1] = line[0][1];
                 endpt[0] = line[1][0];
                 endpt[1] = line[1][1];
+
                 if (segmentIntersection(startpt, endpt, testpt))
                 {
+                    //The issue is that the test line is intersecting with the end point of more than one line.  
+                    intersectionPoint = segmentIntersectionCoordinates(startpt, endpt, testpt, extPt);
+                    differenceXsp = Math.Abs(Math.Abs(intersectionPoint[0]) - Math.Abs(startpt[0]));
+                    differenceYsp = Math.Abs(Math.Abs(intersectionPoint[1]) - Math.Abs(startpt[1]));
+                    differenceXep = Math.Abs(Math.Abs(intersectionPoint[0]) - Math.Abs(endpt[0]));
+                    differenceYep = Math.Abs(Math.Abs(intersectionPoint[1]) - Math.Abs(endpt[1]));
+
+                    if (differenceXsp <= tolerance && differenceYsp <= tolerance || differenceXep <= 0 && differenceYep <= 0)
+                    {
+                        endPtIntersectionCount++;
+                    }
                     i++;
                 }
             }
+            i = i + endPtIntersectionCount/2;
             if (i % 2 == 0)
             {
                 return true;
@@ -287,8 +326,8 @@ namespace Conversational_Machining_App
             double[] coord2 = new double[2];
             double[] coord3 = new double[2];
             double[] coord4 = new double[2];
-            double boundaryX = 10 * boundaryWidth();
-            double boundaryY = 10 * boundaryHeight();
+            double boundaryX = 50 * boundaryWidth();
+            double boundaryY = 50 * boundaryHeight();
 
             if (epx - spx == 0)
             {
@@ -495,7 +534,7 @@ namespace Conversational_Machining_App
         {
             //make offsetpt horizonatal line segment...
             double[] offsetendpt = new double[2];
-            offsetendpt[0] = Math.Abs(offsetstartpt[0] * width * 10);
+            offsetendpt[0] = Math.Abs(offsetstartpt[0] * width * 50);
             offsetendpt[1] = offsetstartpt[1];
 
             //make vectors
@@ -547,3 +586,4 @@ namespace Conversational_Machining_App
 
         #endregion
     }
+}

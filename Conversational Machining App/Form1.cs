@@ -918,7 +918,7 @@ namespace Conversational_Machining_App
             makePtList();
             //pathOffsets.getVoronoiEdges();
             //plot1.vlines = pathOffsets.edges;
-            pathOffsets.createOffsetLines();
+            pathOffsets.createPath();
             makedemoSqr();
             //plot1.vlines = demoSqr;
             plot1.vlines = pathOffsets.offsetLines;
