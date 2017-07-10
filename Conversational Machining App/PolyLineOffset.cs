@@ -11,8 +11,8 @@ namespace Conversational_Machining_App
         public double[] xVal { get; set; }
         public double[] yVal { get; set; }
         public bool offsetInside = true;
-        public double toolR = .25;
-        public double finishPass = .1;
+        public double toolR = .1;
+        public double finishPass = .05;
         public List<string[]> DXFlines = new List<string[]>();
         public List<List<double[]>> lines = new List<List<double[]>>();
         public List<List<double[]>> offsetLines = new List<List<double[]>>();
@@ -21,19 +21,19 @@ namespace Conversational_Machining_App
         double flipUVector = 1;
         double flipVVector = 1;
         double greaterBoundary = 5000;
-        double ttlOffsetDist = 2.0;
+        double ttlOffsetDist = .5;
 
         public void createPath()
         {
             double offset = 0;
             int offsetCount = 1;
             createOffsetLines(toolR);
-            while(offset<=ttlOffsetDist)
+            while (offset <= ttlOffsetDist)
             {
                 offset = toolR * offsetCount + finishPass;
                 offsetCount++;
                 createOffsetLines(offset);
-            }   
+            }
         }
 
         public void createOffsetLines(double offset)
@@ -163,7 +163,7 @@ namespace Conversational_Machining_App
             decimal lclYPt = 0;
             if (offsetInside == true)
             {
-                if (tmpIntersectionCase1[0] != double.NaN)
+                if (Double.IsNaN(tmpIntersectionCase1[0])==false)
                 {
                     if (OddOrEven(lines, tmpIntersectionCase1) == false)
                     {
@@ -174,7 +174,7 @@ namespace Conversational_Machining_App
                         return ret;
                     }
                 }
-                if (tmpIntersectionCase2[0] != double.NaN)
+                if (Double.IsNaN(tmpIntersectionCase2[0]) == false)
                 {
                     if (OddOrEven(lines, tmpIntersectionCase2) == false)
                     {
@@ -185,7 +185,7 @@ namespace Conversational_Machining_App
                         return ret;
                     }
                 }
-                if (tmpIntersectionCase3[0] != double.NaN)
+                if (Double.IsNaN(tmpIntersectionCase3[0]) == false)
                 {
                     if (OddOrEven(lines, tmpIntersectionCase3) == false)
                     {
@@ -196,7 +196,7 @@ namespace Conversational_Machining_App
                         return ret;
                     }
                 }
-                if (tmpIntersectionCase4[0] != double.NaN)
+                if (Double.IsNaN(tmpIntersectionCase4[0]) == false)
                 {
                     if (OddOrEven(lines, tmpIntersectionCase4) == false)
                     {
@@ -210,28 +210,28 @@ namespace Conversational_Machining_App
             }
             if (offsetInside == false)
             {
-                if (tmpIntersectionCase1[0] != double.NaN)
+                if (Double.IsNaN(tmpIntersectionCase1[0]) == false)
                 {
                     if (OddOrEven(lines, tmpIntersectionCase1) == true)
                     {
                         return tmpIntersectionCase1;
                     }
                 }
-                if (tmpIntersectionCase2[0] != double.NaN)
+                if (Double.IsNaN(tmpIntersectionCase2[0]) == false)
                 {
                     if (OddOrEven(lines, tmpIntersectionCase2) == true)
                     {
                         return tmpIntersectionCase2;
                     }
                 }
-                if (tmpIntersectionCase3[0] != double.NaN)
+                if (Double.IsNaN(tmpIntersectionCase3[0]) == false)
                 {
                     if (OddOrEven(lines, tmpIntersectionCase3) == true)
                     {
                         return tmpIntersectionCase3;
                     }
                 }
-                if (tmpIntersectionCase4[0] != double.NaN)
+                if (Double.IsNaN(tmpIntersectionCase4[0]) == false)
                 {
                     if (OddOrEven(lines, tmpIntersectionCase4) == true)
                     {
@@ -534,7 +534,7 @@ namespace Conversational_Machining_App
         {
             //make offsetpt horizonatal line segment...
             double[] offsetendpt = new double[2];
-            offsetendpt[0] = Math.Abs(offsetstartpt[0] * width * 50);
+            offsetendpt[0] = Math.Abs(offsetstartpt[0] * width * 1000);
             offsetendpt[1] = offsetstartpt[1];
 
             //make vectors
