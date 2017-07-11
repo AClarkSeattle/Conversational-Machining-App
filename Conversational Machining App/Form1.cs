@@ -39,8 +39,8 @@ namespace Conversational_Machining_App
 
         List<string[]> DXFlines = new List<string[]>();
         public List<List<double[]>> arcList = new List<List<double[]>>();
+        public List<List<double[]>> arcDataList = new List<List<double[]>>();
         public List<List<double[]>> lineList = new List<List<double[]>>();
-
         public List<List<double[]>> demoSqr = new List<List<double[]>>();
 
         PolyLineOffset pathOffsets = new PolyLineOffset();
@@ -1043,7 +1043,7 @@ namespace Conversational_Machining_App
                 }
                 else if (feature[0] == "AcDbCircle")
                 {
-                    double[] tmpArcData = { 0, 0, 0, 0, 0 };//X Center, Y Center, Radius, Start Angle, End Angle
+                    double[] tmpArcData = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };//X Center, Y Center, Radius, Start Angle, End Angle, StartPtX, StartPtY, EndPtX, EndPtY)
                     tmpArcData[0] = Convert.ToDouble(feature[2]);
                     tmpArcData[1] = Convert.ToDouble(feature[4]);
                     tmpArcData[2] = Convert.ToDouble(feature[8]);
@@ -1065,6 +1065,15 @@ namespace Conversational_Machining_App
                     int numberofSections = Convert.ToInt16((sweepAngle) / angleIncr);
                     int sectioncount = 0;
 
+                    tmpArcData[5] = (radius * Math.Cos(startAngle)) + cpx;
+                    tmpArcData[6] = (radius * Math.Sin(startAngle)) + cpy;
+                    tmpArcData[7] = (radius * Math.Cos(endAngle)) + cpx;
+                    tmpArcData[8] = (radius * Math.Sin(endAngle)) + cpy;
+
+                    List<double[]> tmpArcDataList = new List<double[]>();
+                    tmpArcDataList.Add(tmpArcData);
+                    arcDataList.Add(tmpArcDataList);
+
                     List<double[]> tmpArcList = new List<double[]>();
 
                     while (sectioncount <= numberofSections)
@@ -1083,6 +1092,7 @@ namespace Conversational_Machining_App
             }
             //For computing offsets
             pathOffsets.lines = lineList;
+            pathOffsets.arcs = arcDataList;
             getXYArrays();
             //For displaying base DXF lines and arcs
             plot1.lines = lineList;         

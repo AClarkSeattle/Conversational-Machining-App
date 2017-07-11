@@ -15,6 +15,7 @@ namespace Conversational_Machining_App
         public double finishPass = .05;
         public List<string[]> DXFlines = new List<string[]>();
         public List<List<double[]>> lines = new List<List<double[]>>();
+        public List<List<double[]>> arcs = new List<List<double[]>>();
         public List<List<double[]>> offsetLines = new List<List<double[]>>();
         double width = 0;
         double height = 0;
@@ -27,6 +28,7 @@ namespace Conversational_Machining_App
         {
             double offset = 0;
             int offsetCount = 1;
+            calcArcPts();
             createOffsetLines(toolR);
             while (offset <= ttlOffsetDist)
             {
@@ -290,6 +292,21 @@ namespace Conversational_Machining_App
             else
             {
                 return false;
+            }
+        }
+
+        public void calcArcPts()
+        {
+            double[,] tmpArcArray = new double[lines.Count, 9];
+
+            int i = 0;
+            foreach (List<double[]> arc in arcs)
+            {
+                tmpArcArray[i, 0] = arc[0][0];
+                tmpArcArray[i, 1] = arc[0][1];
+                tmpArcArray[i, 2] = arc[1][0];
+                tmpArcArray[i, 3] = arc[1][1];
+                i++;
             }
         }
 
