@@ -42,6 +42,7 @@ namespace Conversational_Machining_App
         public List<List<double[]>> arcDataList = new List<List<double[]>>();
         public List<List<double[]>> lineList = new List<List<double[]>>();
         public List<List<double[]>> demoSqr = new List<List<double[]>>();
+        public List<List<double[]>> combinedOrderedList = new List<List<double[]>>();
 
         PolyLineOffset pathOffsets = new PolyLineOffset();
 
@@ -908,7 +909,7 @@ namespace Conversational_Machining_App
         }
 
         private void LoadDXFTextBox_Click(object sender, EventArgs e)
-        {        
+        {
             plot1.lines.Clear();
             plot1.arcs.Clear();
             plot1.vlines.Clear();
@@ -1020,10 +1021,10 @@ namespace Conversational_Machining_App
                         }
                     }
                 }
-            }        
+            }
             pathOffsets.DXFlines = DXFlines;
         }
-        
+
         public void makePtList()
         {
             foreach (string[] feature in DXFlines)
@@ -1093,10 +1094,65 @@ namespace Conversational_Machining_App
             //For computing offsets
             pathOffsets.lines = lineList;
             pathOffsets.arcs = arcDataList;
+            createOrderedLineArcArray();
             getXYArrays();
             //For displaying base DXF lines and arcs
-            plot1.lines = lineList;         
-            plot1.arcs = arcList;       
+            plot1.lines = lineList;
+            plot1.arcs = arcList;
+        }
+
+        public void createOrderedLineArcArray()
+        {
+            //create ordered list of arcdatalist and linelist structures connecting the start points and end points
+            foreach (List<double[]> line in lineList)
+            {
+                List<List<double[]>> tmparcDataList = new List<List<double[]>>();
+                List<double[]> tmparcdata = new List<double[]>();
+                tmparcDataList = arcDataList;
+                bool connected = false;
+                double lineSPX = line[0][0];
+                double lineSPY = line[0][1];
+                double lineEPX = line[1][0];
+                double lineEPY = line[1][1];
+                foreach (List<double[]> arcdata in tmparcDataList)
+                {                 
+                    double arcSPX = arcdata[0][5];
+                    double arcSPY = arcdata[0][6];
+                    double arcEPX = arcdata[0][7];
+                    double arcEPY = arcdata[0][8];
+                    bool SPsConnected = lineArcConnection(lineEPX, lineEPY, arcSPX, arcSPY);
+                    bool EPsConnected = lineArcConnection(lineEPX, lineEPY, arcEPX, arcEPY);
+                    if (EPsConnected == true || SPsConnected == true)
+                    {
+                        tmparcdata = arcdata;
+                        combinedOrderedList.Add(line);
+                        combinedOrderedList.Add(arcdata);
+                        connected = true;
+                    }
+                }
+                if (connected == true)
+                {
+                    tmparcDataList.Remove(tmparcdata);
+                }
+                if (connected == false)
+                {
+                    combinedOrderedList.Add(line);
+                }
+            }
+        }
+
+        public bool lineArcConnection(double lineX, double lineY, double arcX, double arcY)
+        {
+            double xtol = Math.Abs(Math.Abs(lineX) - Math.Abs(arcX));
+            double ytol = Math.Abs(Math.Abs(lineY) - Math.Abs(arcY));
+            if (xtol <= .0001 && ytol <= .0001)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
         }
 
         public void getXYArrays()

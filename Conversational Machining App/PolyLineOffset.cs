@@ -551,7 +551,7 @@ namespace Conversational_Machining_App
         {
             //make offsetpt horizonatal line segment...
             double[] offsetendpt = new double[2];
-            offsetendpt[0] = Math.Abs(offsetstartpt[0] * width * 1000);
+            offsetendpt[0] = Math.Abs(offsetstartpt[0] + width * 1000);
             offsetendpt[1] = offsetstartpt[1];
 
             //make vectors
