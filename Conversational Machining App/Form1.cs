@@ -910,6 +910,10 @@ namespace Conversational_Machining_App
 
         private void LoadDXFTextBox_Click(object sender, EventArgs e)
         {
+            lineList.Clear();
+            arcList.Clear();
+            arcDataList.Clear();
+            combinedOrderedList.Clear();
             plot1.lines.Clear();
             plot1.arcs.Clear();
             plot1.vlines.Clear();
@@ -917,44 +921,9 @@ namespace Conversational_Machining_App
             openfilepathDXF = openFileDialog2.FileName;
             readDXFtoPTList();
             makePtList();
-            //pathOffsets.getVoronoiEdges();
-            //plot1.vlines = pathOffsets.edges;
             pathOffsets.createPath();
-            makedemoSqr();
-            //plot1.vlines = demoSqr;
             plot1.vlines = pathOffsets.offsetLines;
             plot1.reset();
-        }
-
-        public void makedemoSqr()
-        {
-            List<double[]> tmpLineList0 = new List<double[]>();
-            double[] offs_00 = { -2, 2 }; //X, Y Start
-            double[] offs_01 = { -2, -2 }; //X, Y End
-            tmpLineList0.Add(offs_00);
-            tmpLineList0.Add(offs_01);
-            demoSqr.Add(tmpLineList0);
-
-            List<double[]> tmpLineList1 = new List<double[]>();
-            double[] offs_10 = { -2, -2 }; //X, Y Start
-            double[] offs_11 = { 2, -2 }; //X, Y End
-            tmpLineList1.Add(offs_10);
-            tmpLineList1.Add(offs_11);
-            demoSqr.Add(tmpLineList1);
-
-            List<double[]> tmpLineList2 = new List<double[]>();
-            double[] offs_20 = { 2, -2 }; //X, Y Start
-            double[] offs_21 = { 2, 2 }; //X, Y End
-            tmpLineList2.Add(offs_20);
-            tmpLineList2.Add(offs_21);
-            demoSqr.Add(tmpLineList2);
-
-            List<double[]> tmpLineList3 = new List<double[]>();
-            double[] offs_30 = { 2, 2 }; //X, Y Start
-            double[] offs_31 = { -2, 2 }; //X, Y End
-            tmpLineList3.Add(offs_30);
-            tmpLineList3.Add(offs_31);
-            demoSqr.Add(tmpLineList3);
         }
 
         private void numericUpDown1_ValueChanged(object sender, EventArgs e)
@@ -1094,6 +1063,7 @@ namespace Conversational_Machining_App
             //For computing offsets
             pathOffsets.lines = lineList;
             pathOffsets.arcs = arcDataList;
+            pathOffsets.combinedLineArcList = combinedOrderedList;
             createOrderedLineArcArray();
             getXYArrays();
             //For displaying base DXF lines and arcs
