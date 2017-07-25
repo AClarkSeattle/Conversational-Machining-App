@@ -42,6 +42,7 @@ namespace Conversational_Machining_App
         public List<List<double[]>> arcDataList = new List<List<double[]>>();
         public List<List<double[]>> lineList = new List<List<double[]>>();
         public List<List<double[]>> demoSqr = new List<List<double[]>>();
+        public List<List<double[]>> orderedLineList = new List<List<double[]>>();
         public List<List<double[]>> combinedOrderedList = new List<List<double[]>>();
 
         PolyLineOffset pathOffsets = new PolyLineOffset();
@@ -1013,7 +1014,7 @@ namespace Conversational_Machining_App
                 }
                 else if (feature[0] == "AcDbCircle")
                 {
-                    double[] tmpArcData = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };//X Center, Y Center, Radius, Start Angle, End Angle, StartPtX, StartPtY, EndPtX, EndPtY)
+                    double[] tmpArcData = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };//X Center, Y Center, Radius, Start Angle, End Angle, StartPtX, StartPtY, EndPtX, EndPtY, )
                     tmpArcData[0] = Convert.ToDouble(feature[2]);
                     tmpArcData[1] = Convert.ToDouble(feature[4]);
                     tmpArcData[2] = Convert.ToDouble(feature[8]);
@@ -1024,7 +1025,7 @@ namespace Conversational_Machining_App
                     double cpy = tmpArcData[1];
                     double radius = tmpArcData[2];
                     double startAngle = tmpArcData[3] * Math.PI / 180;//start angle
-                    double endAngle = tmpArcData[4] * Math.PI / 180;
+                    double endAngle = tmpArcData[4] * Math.PI / 180;//end angle
                     double rMultiplier = 1;
                     rMultiplier = (radius > 1) ? radius : 1;
                     double Angle = startAngle;
@@ -1064,11 +1065,67 @@ namespace Conversational_Machining_App
             pathOffsets.lines = lineList;
             pathOffsets.arcs = arcDataList;
             pathOffsets.combinedLineArcList = combinedOrderedList;
+            createOrderedLineArray();
             createOrderedLineArcArray();
             getXYArrays();
             //For displaying base DXF lines and arcs
             plot1.lines = lineList;
             plot1.arcs = arcList;
+        }
+
+        public void createOrderedLineArray()
+        {
+            List<List<double[]>> tmplinedata = new List<List<double[]>>();
+            foreach(List<double[]>line in lineList)
+            {
+                tmplinedata.Add(line);
+            }
+            double prevSPX = 0;
+            double prevSPY = 0;
+            double prevEPX = 0;
+            double prevEPY = 0;
+            int i = 0;
+            foreach (List<double[]> line in lineList)
+            {
+                List<double[]> tmpline = new List<double[]>();
+                if (i == 0)
+                {
+                    orderedLineList.Add(line);
+                    prevSPX = line[0][0];
+                    prevSPY = line[0][1];
+                    prevEPX = line[1][0];
+                    prevEPY = line[1][1];
+                    i++;
+                }
+                else
+                {
+                    bool connected = false;
+                    foreach (List<double[]> seg in tmplinedata)
+                    {
+                        double lineSPX = seg[0][0];
+                        double lineSPY = seg[0][1];
+                        double lineEPX = seg[1][0];
+                        double lineEPY = seg[1][1];
+                        if (connected == false)
+                        {
+                            if (prevEPX == lineSPX && prevEPY == lineSPY)
+                            {
+                                orderedLineList.Add(seg);
+                                tmpline = seg;
+                                prevSPX = lineSPX;
+                                prevSPY = lineSPY;
+                                prevEPX = lineEPX;
+                                prevEPY = lineEPY;
+                                connected = true;
+                            }
+                        }
+                    }
+                    if (connected == true)
+                    {
+                        tmplinedata.Remove(tmpline);
+                    }
+                }
+            }
         }
 
         public void createOrderedLineArcArray()
@@ -1085,13 +1142,13 @@ namespace Conversational_Machining_App
                 double lineEPX = line[1][0];
                 double lineEPY = line[1][1];
                 foreach (List<double[]> arcdata in tmparcDataList)
-                {                 
+                {
                     double arcSPX = arcdata[0][5];
                     double arcSPY = arcdata[0][6];
                     double arcEPX = arcdata[0][7];
                     double arcEPY = arcdata[0][8];
-                    bool SPsConnected = lineArcConnection(lineEPX, lineEPY, arcSPX, arcSPY);
-                    bool EPsConnected = lineArcConnection(lineEPX, lineEPY, arcEPX, arcEPY);
+                    bool SPsConnected = lineArcConnection(lineSPX, lineSPY, arcSPX, arcSPY);
+                    bool EPsConnected = lineArcConnection(lineSPX, lineSPY, arcEPX, arcEPY);
                     if (EPsConnected == true || SPsConnected == true)
                     {
                         tmparcdata = arcdata;
@@ -1271,6 +1328,6 @@ namespace Conversational_Machining_App
                 writer.Close();
             }
         }
-        #endregion      
+        #endregion
     }
 }
