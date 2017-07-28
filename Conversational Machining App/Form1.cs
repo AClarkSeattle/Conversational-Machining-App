@@ -1060,16 +1060,12 @@ namespace Conversational_Machining_App
                     }
                     createArcListPairs(tmpArcList);
                 }
-            }
-            
-            
+            }                
             //For computing offsets
             createOrderedLineArcArray();
             pathOffsets.lines = lineList;
             pathOffsets.arcs = arcDataList;
-
             pathOffsets.combinedLineArcList = combinedOrderedList;
-
             getXYArrays(true);
             //For displaying base DXF lines and arcs
             plot1.lines = lineList;
@@ -1078,7 +1074,8 @@ namespace Conversational_Machining_App
 
         public void createOrderedLineArcArray()
         {
-            
+            orderedLineArcList.Clear();
+            combinedOrderedList.Clear();
             double tol = .0001;
             List<List<double[]>> compositeList = new List<List<double[]>>();
             List<List<double[]>> tmpdata = new List<List<double[]>>();
@@ -1181,13 +1178,14 @@ namespace Conversational_Machining_App
             }
             else
             {
-                createOrderedLineArcArray(true);
+                createOrderedLineArcArrayAlt();
             }
             
         }
 
-        public void createOrderedLineArcArray(bool alternate)
+        public void createOrderedLineArcArrayAlt()
         {
+            //For DXF files encoded with lines and arcs out of order...
             combinedOrderedList.Clear();
             //create ordered list of arcdatalist and linelist structures connecting the start points and end points
             foreach (List<double[]> line in lineList)
