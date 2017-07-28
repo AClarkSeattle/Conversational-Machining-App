@@ -42,7 +42,7 @@ namespace Conversational_Machining_App
         public List<List<double[]>> arcDataList = new List<List<double[]>>();
         public List<List<double[]>> lineList = new List<List<double[]>>();
         public List<List<double[]>> demoSqr = new List<List<double[]>>();
-        public List<List<double[]>> orderedLineList = new List<List<double[]>>();
+        public List<List<double[]>> orderedLineArcList = new List<List<double[]>>();
         public List<List<double[]>> combinedOrderedList = new List<List<double[]>>();
 
         PolyLineOffset pathOffsets = new PolyLineOffset();
@@ -1061,56 +1061,91 @@ namespace Conversational_Machining_App
                     createArcListPairs(tmpArcList);
                 }
             }
+            
+            
             //For computing offsets
+            createOrderedLineArcArray();
             pathOffsets.lines = lineList;
             pathOffsets.arcs = arcDataList;
+
             pathOffsets.combinedLineArcList = combinedOrderedList;
-            createOrderedLineArray();
-            createOrderedLineArcArray();
-            getXYArrays();
+
+            getXYArrays(true);
             //For displaying base DXF lines and arcs
             plot1.lines = lineList;
             plot1.arcs = arcList;
         }
 
-        public void createOrderedLineArray()
+        public void createOrderedLineArcArray()
         {
-            List<List<double[]>> tmplinedata = new List<List<double[]>>();
-            foreach(List<double[]>line in lineList)
+            
+            double tol = .0001;
+            List<List<double[]>> compositeList = new List<List<double[]>>();
+            List<List<double[]>> tmpdata = new List<List<double[]>>();
+            foreach (List<double[]> line in lineList)
             {
-                tmplinedata.Add(line);
+                tmpdata.Add(line);
+                compositeList.Add(line);
             }
+            foreach (List<double[]> arc in arcDataList)
+            {
+                tmpdata.Add(arc);
+                compositeList.Add(arc);
+            }
+            int objCount = tmpdata.Count;
             double prevSPX = 0;
             double prevSPY = 0;
             double prevEPX = 0;
             double prevEPY = 0;
             int i = 0;
-            foreach (List<double[]> line in lineList)
+            foreach (List<double[]> line in compositeList)
             {
                 List<double[]> tmpline = new List<double[]>();
                 if (i == 0)
                 {
-                    orderedLineList.Add(line);
+                    orderedLineArcList.Add(line);
                     prevSPX = line[0][0];
                     prevSPY = line[0][1];
                     prevEPX = line[1][0];
                     prevEPY = line[1][1];
+                    tmpdata.Remove(line);
                     i++;
                 }
                 else
                 {
                     bool connected = false;
-                    foreach (List<double[]> seg in tmplinedata)
+                    bool isArc = false;
+                    foreach (List<double[]> seg in tmpdata)
                     {
-                        double lineSPX = seg[0][0];
-                        double lineSPY = seg[0][1];
-                        double lineEPX = seg[1][0];
-                        double lineEPY = seg[1][1];
+                        double lineSPX;
+                        double lineSPY;
+                        double lineEPX;
+                        double lineEPY;
+                        if (seg.Count == 2)
+                        {
+                            lineSPX = seg[0][0];
+                            lineSPY = seg[0][1];
+                            lineEPX = seg[1][0];
+                            lineEPY = seg[1][1];
+                        }
+                        else
+                        {
+                            lineSPX = seg[0][5];
+                            lineSPY = seg[0][6];
+                            lineEPX = seg[0][7];
+                            lineEPY = seg[0][8];
+                            isArc = true;
+                        }
+
                         if (connected == false)
                         {
-                            if (prevEPX == lineSPX && prevEPY == lineSPY)
+                            double tolXEPSP = Math.Abs(Math.Abs(prevEPX) - Math.Abs(lineSPX));
+                            double tolYEPSP = Math.Abs(Math.Abs(prevEPY) - Math.Abs(lineSPY));
+                            double tolXEPEP = Math.Abs(Math.Abs(prevEPX) - Math.Abs(lineEPX));
+                            double tolYEPEP = Math.Abs(Math.Abs(prevEPY) - Math.Abs(lineEPY));
+                            if (tolXEPSP <= tol && tolYEPSP <= tol)
                             {
-                                orderedLineList.Add(seg);
+                                orderedLineArcList.Add(seg);
                                 tmpline = seg;
                                 prevSPX = lineSPX;
                                 prevSPY = lineSPY;
@@ -1118,18 +1153,42 @@ namespace Conversational_Machining_App
                                 prevEPY = lineEPY;
                                 connected = true;
                             }
+                            if (isArc == true && connected == false) //check if end points are out of order on the arc...
+                            {
+                                if (tolXEPEP <= tol && tolYEPEP <= tol)
+                                {
+                                    orderedLineArcList.Add(seg);
+                                    tmpline = seg;
+                                    prevSPX = lineEPX;
+                                    prevSPY = lineEPY;
+                                    prevEPX = lineSPX;
+                                    prevEPY = lineSPY;
+                                    connected = true;
+                                    isArc = false;
+                                }
+                            }
                         }
                     }
                     if (connected == true)
                     {
-                        tmplinedata.Remove(tmpline);
+                        tmpdata.Remove(tmpline);
                     }
                 }
             }
+            if (orderedLineArcList.Count==objCount)
+            {
+                combinedOrderedList = orderedLineArcList;
+            }
+            else
+            {
+                createOrderedLineArcArray(true);
+            }
+            
         }
 
-        public void createOrderedLineArcArray()
+        public void createOrderedLineArcArray(bool alternate)
         {
+            combinedOrderedList.Clear();
             //create ordered list of arcdatalist and linelist structures connecting the start points and end points
             foreach (List<double[]> line in lineList)
             {
@@ -1180,6 +1239,36 @@ namespace Conversational_Machining_App
             {
                 return false;
             }
+        }
+
+        public void getXYArrays(bool combinedList)
+        {
+            double[] tmpArrayXPts = new double[lineList.Count * 2 + arcList.Count * 2];
+            double[] tmpArrayYPts = new double[lineList.Count * 2 + arcList.Count * 2];
+            int i = 0;
+            foreach (List<double[]> item in combinedOrderedList)
+            {
+                if (item.Count == 2)
+                {
+                    tmpArrayXPts[i] = item[0][0];
+                    tmpArrayYPts[i] = item[0][1];
+                    i++;
+                    tmpArrayXPts[i] = item[1][0];
+                    tmpArrayYPts[i] = item[1][1];
+                    i++;
+                }
+                else
+                {
+                    tmpArrayXPts[i] = item[0][5];
+                    tmpArrayYPts[i] = item[0][6];
+                    i++;
+                    tmpArrayXPts[i] = item[0][7];
+                    tmpArrayYPts[i] = item[0][8];
+                    i++;
+                }
+            }
+            pathOffsets.xVal = tmpArrayXPts;
+            pathOffsets.yVal = tmpArrayYPts;
         }
 
         public void getXYArrays()
