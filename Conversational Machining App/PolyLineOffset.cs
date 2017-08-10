@@ -28,7 +28,7 @@ namespace Conversational_Machining_App
 
         public void createPath()
         {
-            //lineCircleIntersectionPts(-1, -.5, 2, -3, 2);
+            //lineCircleIntersectionPts(0, 4.90, 2.30288795, 5, .65);
 
             double offset = 0;
             int offsetCount = 1;
@@ -44,36 +44,36 @@ namespace Conversational_Machining_App
 
         public void createOffsetLines(double offset)
         {
-            //This only really works with lines... not arcs... must figure out how to ignore arc information during the build up.
             width = boundaryWidth();
             height = boundaryHeight();
             greaterBoundary = (width >= height) ? width * 50 : height * 50;
 
-            double[,] tmplinearray = new double[combinedLineArcList.Count, 4];
+            double[,] tmplinearray = new double[combinedLineArcList.Count, 7];
+            List<int> arcIndices = new List<int>();
 
             int i = 0;
             foreach (List<double[]> line in combinedLineArcList)
             {
-
-                //line data
-                if (line.Count == 2)
+                if (line.Count == 2)//line data
                 {
                     tmplinearray[i, 0] = line[0][0];
                     tmplinearray[i, 1] = line[0][1];
                     tmplinearray[i, 2] = line[1][0];
                     tmplinearray[i, 3] = line[1][1];
                 }
-                else
+                else //arc data
                 {
-                    tmplinearray[i, 0] = line[0][5];
-                    tmplinearray[i, 1] = line[0][6];
-                    tmplinearray[i, 2] = line[0][7];
-                    tmplinearray[i, 3] = line[0][8];
+                    tmplinearray[i, 0] = line[0][5]; //SPX
+                    tmplinearray[i, 1] = line[0][6]; //SPY
+                    tmplinearray[i, 2] = line[0][7]; //EPX
+                    tmplinearray[i, 3] = line[0][8]; //EPY
+                    tmplinearray[i, 4] = line[0][0]; //CPX
+                    tmplinearray[i, 5] = line[0][1]; //CPY
+                    tmplinearray[i, 6] = line[0][2]; //Radius
+                    arcIndices.Add(i);
                 }
                 i++;
             }
-
-            logData(tmplinearray, "lines.txt");
 
             double[,] offsetPtArray = new double[combinedLineArcList.Count, 2];
 
@@ -146,11 +146,13 @@ namespace Conversational_Machining_App
                 }
             }
             offsetPtsToLines(offsetPtArray);
+            //insert arc offset... new arc radius = R-offset
+            calcArcOffsPts(tmplinearray, offsetLines, offset, arcIndices);
         }
 
         public void logData(double[,] data, string fileName)
         {
-            using (StreamWriter writer = new StreamWriter(@"C:\Users\Adam Clark\Documents\Visual Studio 2015\Projects\Conversational Machining App\"+fileName, true))
+            using (StreamWriter writer = new StreamWriter(@"C:\Users\Adam Clark\Documents\Visual Studio 2015\Projects\Conversational Machining App\" + fileName, true))
             {
                 foreach (double item in data)
                 {
@@ -432,18 +434,88 @@ namespace Conversational_Machining_App
             }
         }
 
-        public void calcArcPts()
+        public void calcArcOffsPts(double[,] lcllineArcDataArray, List<List<double[]>> lcloffsetLines, double lcloffset, List<int> lclarcIndex)
         {
-            double[,] tmpArcArray = new double[lines.Count, 9];
-
+            //An arc will never be the first element in the list... unless all of the elements are arcs!
+            //in lcloffsetLines, the faux arc elements are located at lclarcIndex-1
+            double[,] tmpOffsetLines = new double[lcloffsetLines.Count, 4];
             int i = 0;
-            foreach (List<double[]> arc in arcs)
+            foreach (List<double[]> offsLine in lcloffsetLines)
             {
-                tmpArcArray[i, 0] = arc[0][0];
-                tmpArcArray[i, 1] = arc[0][1];
-                tmpArcArray[i, 2] = arc[1][0];
-                tmpArcArray[i, 3] = arc[1][1];
+                tmpOffsetLines[i, 0] = offsLine[0][0];
+                tmpOffsetLines[i, 1] = offsLine[0][1];
+                tmpOffsetLines[i, 2] = offsLine[1][0];
+                tmpOffsetLines[i, 3] = offsLine[1][1];
                 i++;
+            }
+            List<double[]> offsetArcs = new List<double[]>();
+            int arrayLength = lcllineArcDataArray.Length / 7;
+            foreach (int index in lclarcIndex)
+            {
+                //in tmpOffsetLines the temporary offset line is located at lclarcIndex-1
+                double line1SPX = tmpOffsetLines[index - 2, 0];
+                double line1SPY = tmpOffsetLines[index - 2, 1];
+                double line1EPX = tmpOffsetLines[index - 2, 2];
+                double line1EPY = tmpOffsetLines[index - 2, 3];
+
+                double line2SPX = tmpOffsetLines[index, 0];
+                double line2SPY = tmpOffsetLines[index, 1];
+                double line2EPX = tmpOffsetLines[index, 2];
+                double line2EPY = tmpOffsetLines[index, 3];
+
+                double m1 = 0;
+                double m2 = 0;
+                double xintercept1 = 0;
+                double xintercept2 = 0;
+                bool useAltIntersectMethodLine1 = false;
+                bool useAltIntersectMethodLine2 = false;
+
+                if (line1SPX == line1EPX)
+                {
+                    xintercept1 = line1SPX;
+                    useAltIntersectMethodLine1 = true;
+                }
+                else
+                {
+                    m1 = slope(line1SPX, line1SPY, line1EPX, line1EPY);
+                }
+
+                if (line2SPX == line2EPX)
+                {
+                    xintercept2 = line2SPX;
+                    useAltIntersectMethodLine2 = true;
+                }
+                else
+                {
+                    m2 = slope(line2SPX, line2SPY, line2EPX, line2EPY);
+                }
+
+                double b1 = yintercept(m1, line1SPX, line1SPY);
+                double b2 = yintercept(m2, line2SPX, line2SPY);
+
+                //in lcllineArcDataArray the arc information is located at lclarcIndex
+                double tmph = lcllineArcDataArray[index, 4];
+                double tmpk = lcllineArcDataArray[index, 5];
+                double tmpr = lcllineArcDataArray[index, 6];
+                double[] tmpArcIntersectionPts1 = new double[4];
+                double[] tmpArcIntersectionPts2 = new double[4];
+
+                if (useAltIntersectMethodLine1==false)
+                {
+                    tmpArcIntersectionPts1 = lineCircleIntersectionPts(m1, b1, tmph, tmpk, tmpr - lcloffset);
+                }
+                else
+                {
+                    tmpArcIntersectionPts1 = lineCircleIntersectionPts(xintercept1, tmph, tmpk, tmpr - lcloffset);
+                }
+                if(useAltIntersectMethodLine2==false)
+                {
+                    tmpArcIntersectionPts2 = lineCircleIntersectionPts(m2, b2, tmph, tmpk, tmpr - lcloffset);
+                }
+                else
+                {
+                    tmpArcIntersectionPts2 = lineCircleIntersectionPts(xintercept2, tmph, tmpk, tmpr - lcloffset);
+                }         
             }
         }
 
@@ -554,24 +626,24 @@ namespace Conversational_Machining_App
             double tol = .0001;
 
             double[] vertex = new double[2];
-            if (x0tol<=tol && y0tol <=tol)
+            if (x0tol <= tol && y0tol <= tol)
             {
                 vertex[0] = line0_x0;
                 vertex[1] = line0_y0;
             }
-            if (x01tol<=tol && y01tol<=tol)
+            if (x01tol <= tol && y01tol <= tol)
             {
                 vertex[0] = line0_x0;
                 vertex[1] = line0_y0;
                 flipVVector = -1;
             }
-            if (x10tol<=tol && y10tol<=tol)
+            if (x10tol <= tol && y10tol <= tol)
             {
                 vertex[0] = line0_x1;
                 vertex[1] = line0_y1;
                 flipUVector = -1;
             }
-            if (x1tol<=tol && y1tol<=tol)
+            if (x1tol <= tol && y1tol <= tol)
             {
                 vertex[0] = line0_x1;
                 vertex[1] = line0_y1;
@@ -695,6 +767,23 @@ namespace Conversational_Machining_App
 
         #region Intersection Methods
 
+        public double[] lineCircleIntersectionPts(double xInterceptPt, double h, double k, double r)
+        {
+            double[] intersectionPts = new double[4];
+            double A = Math.Pow(r, 2);
+            double B = Math.Pow(xInterceptPt - h, 2);
+            double C = Math.Sqrt(A - B);
+
+            double yp = C+k;
+            double yn = -C+k;
+
+            intersectionPts[0] = xInterceptPt;
+            intersectionPts[1] = yp;
+            intersectionPts[2] = xInterceptPt;
+            intersectionPts[3] = yn;
+            return intersectionPts;
+        }
+
         public double[] lineCircleIntersectionPts(double m, double b, double h, double k, double r)
         {
             double[] intersectionPts = new double[4];
@@ -710,7 +799,7 @@ namespace Conversational_Machining_App
 
             intersectionPts[0] = xp;
             intersectionPts[1] = yp;
-            intersectionPts[2] = -xn;
+            intersectionPts[2] = xn;
             intersectionPts[3] = yn;
             return intersectionPts;
         }

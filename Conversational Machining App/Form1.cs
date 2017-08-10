@@ -1178,12 +1178,12 @@ namespace Conversational_Machining_App
             }
             else
             {
-                createOrderedLineArcArrayAlt();
+                createOrderedLineArcArrayAltMethod();
             }
             
         }
 
-        public void createOrderedLineArcArrayAlt()
+        public void createOrderedLineArcArrayAltMethod()
         {
             //For DXF files encoded with lines and arcs out of order...
             combinedOrderedList.Clear();
