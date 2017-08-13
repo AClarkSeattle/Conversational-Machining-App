@@ -515,7 +515,12 @@ namespace Conversational_Machining_App
                 else
                 {
                     tmpArcIntersectionPts2 = lineCircleIntersectionPts(xintercept2, tmph, tmpk, tmpr - lcloffset);
-                }         
+                }  
+                //insert arc intersection information into tmpOffsetLines[index-1] 
+                //check for tmpArcIntersectionPts# nearest to the end pts of the temporary arc offset line.
+                //include the center pt h,k, the radius of the arc and compute the I,J for later G3 and G3 instructions.
+                //as written, the geometry elements are in counterclockwise order, so G3 for arcs is default. 
+                //if the user wants to reverse the path, the start point and end pts of all geometric elements and recalculate the I,J for the G2 instruction.    
             }
         }
 
