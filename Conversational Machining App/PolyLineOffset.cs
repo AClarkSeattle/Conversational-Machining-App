@@ -15,9 +15,9 @@ namespace Conversational_Machining_App
         public double toolR = .1;
         public double finishPass = .05;
         public List<string[]> DXFlines = new List<string[]>();
-        public List<List<double[]>> lines = new List<List<double[]>>();
-        public List<List<double[]>> arcs = new List<List<double[]>>();
-        public List<List<double[]>> combinedLineArcList = new List<List<double[]>>();
+        public List<List<double[]>> lines = new List<List<double[]>>();//no longer used
+        public List<List<double[]>> arcs = new List<List<double[]>>();//no longer used
+        public List<List<double[]>> combinedLineArcList = new List<List<double[]>>();//
         public List<List<double[]>> offsetLines = new List<List<double[]>>();
         double width = 0;
         double height = 0;
@@ -25,6 +25,7 @@ namespace Conversational_Machining_App
         double flipVVector = 1;
         double greaterBoundary = 5000;
         double ttlOffsetDist = .25;
+        bool debug = true;
 
         public void createPath()
         {
@@ -32,13 +33,16 @@ namespace Conversational_Machining_App
 
             double offset = 0;
             int offsetCount = 1;
-            //calcArcPts();
+
             createOffsetLines(toolR);
-            while (offset <= ttlOffsetDist)
+            if (debug == false)
             {
-                offset = toolR * offsetCount + finishPass;
-                offsetCount++;
-                createOffsetLines(offset);
+                while (offset <= ttlOffsetDist)
+                {
+                    offset = toolR * offsetCount + finishPass;
+                    offsetCount++;
+                    createOffsetLines(offset);
+                }
             }
         }
 
@@ -438,7 +442,7 @@ namespace Conversational_Machining_App
         {
             //An arc will never be the first element in the list... unless all of the elements are arcs!
             //in lcloffsetLines, the faux arc elements are located at lclarcIndex-1
-            double[,] tmpOffsetLines = new double[lcloffsetLines.Count, 4];
+            double[,] tmpOffsetLines = new double[lcloffsetLines.Count, 7];
             int i = 0;
             foreach (List<double[]> offsLine in lcloffsetLines)
             {
@@ -499,29 +503,150 @@ namespace Conversational_Machining_App
                 double tmpr = lcllineArcDataArray[index, 6];
                 double[] tmpArcIntersectionPts1 = new double[4];
                 double[] tmpArcIntersectionPts2 = new double[4];
+                double[] sharedIntersectionPtArc1 = new double[2];
+                double[] sharedIntersectionPtArc2 = new double[2];
 
-                if (useAltIntersectMethodLine1==false)
+                if (useAltIntersectMethodLine1 == false)
                 {
+                    bool replaceSP = false;
                     tmpArcIntersectionPts1 = lineCircleIntersectionPts(m1, b1, tmph, tmpk, tmpr - lcloffset);
+                    double[] tmpNN = nearestNeighbor(tmpArcIntersectionPts1, line1SPX, line1SPY, line1EPX, line1EPY, out replaceSP);
+                    if (replaceSP == true)
+                    {
+                        tmpOffsetLines[index - 2, 0] = tmpNN[0];
+                        tmpOffsetLines[index - 2, 1] = tmpNN[1];
+                    }
+                    else
+                    {
+                        tmpOffsetLines[index - 2, 2] = tmpNN[0];
+                        tmpOffsetLines[index - 2, 3] = tmpNN[1];
+                    }
+                    sharedIntersectionPtArc1 = tmpNN;
                 }
                 else
                 {
+                    bool replaceSP = false;
                     tmpArcIntersectionPts1 = lineCircleIntersectionPts(xintercept1, tmph, tmpk, tmpr - lcloffset);
+                    double[] tmpNN = nearestNeighbor(tmpArcIntersectionPts1, line1SPX, line1SPY, line1EPX, line1EPY, out replaceSP);
+                    if (replaceSP == true)
+                    {
+                        tmpOffsetLines[index - 2, 0] = tmpNN[0];
+                        tmpOffsetLines[index - 2, 1] = tmpNN[1];
+                    }
+                    else
+                    {
+                        tmpOffsetLines[index - 2, 2] = tmpNN[0];
+                        tmpOffsetLines[index - 2, 3] = tmpNN[1];
+                    }
+                    sharedIntersectionPtArc1 = tmpNN;
                 }
-                if(useAltIntersectMethodLine2==false)
+                if (useAltIntersectMethodLine2 == false)
                 {
+                    bool replaceSP = false;
                     tmpArcIntersectionPts2 = lineCircleIntersectionPts(m2, b2, tmph, tmpk, tmpr - lcloffset);
+                    double[] tmpNN = nearestNeighbor(tmpArcIntersectionPts2, line2SPX, line2SPY, line2EPX, line2EPY, out replaceSP);
+                    if (replaceSP == true)
+                    {
+                        tmpOffsetLines[index, 0] = tmpNN[0];
+                        tmpOffsetLines[index, 1] = tmpNN[1];
+                    }
+                    else
+                    {
+                        tmpOffsetLines[index, 2] = tmpNN[0];
+                        tmpOffsetLines[index, 3] = tmpNN[1];
+                    }
+                    sharedIntersectionPtArc2 = tmpNN;
                 }
                 else
                 {
+                    bool replaceSP = false;
                     tmpArcIntersectionPts2 = lineCircleIntersectionPts(xintercept2, tmph, tmpk, tmpr - lcloffset);
-                }  
+                    double[] tmpNN = nearestNeighbor(tmpArcIntersectionPts2, line2SPX, line2SPY, line2EPX, line2EPY, out replaceSP);
+                    if (replaceSP == true)
+                    {
+                        tmpOffsetLines[index, 0] = tmpNN[0];
+                        tmpOffsetLines[index, 1] = tmpNN[1];
+                    }
+                    else
+                    {
+                        tmpOffsetLines[index, 2] = tmpNN[0];
+                        tmpOffsetLines[index, 3] = tmpNN[1];
+                    }
+                    sharedIntersectionPtArc2 = tmpNN;
+                }
                 //insert arc intersection information into tmpOffsetLines[index-1] 
                 //check for tmpArcIntersectionPts# nearest to the end pts of the temporary arc offset line.
                 //include the center pt h,k, the radius of the arc and compute the I,J for later G3 and G3 instructions.
-                //as written, the geometry elements are in counterclockwise order, so G3 for arcs is default. 
-                //if the user wants to reverse the path, the start point and end pts of all geometric elements and recalculate the I,J for the G2 instruction.    
+                //as written, the geometry elements are in counterclockwise order, so G3 for convex arcs and G2 for concave arcs is default. 
+                //if the user wants to reverse the path, the start point and end pts of all geometric elements and recalculate the I,J for the G2 instruction. 
+                double[] arcPtArray = new double[4];
+                arcPtArray = arcSPandEP(tmpOffsetLines[index - 1, 0], tmpOffsetLines[index - 1, 1], tmpOffsetLines[index - 1, 2],
+                    tmpOffsetLines[index - 1, 3], sharedIntersectionPtArc1, sharedIntersectionPtArc2);
+                tmpOffsetLines[index - 1, 0] = arcPtArray[0]; //SPX
+                tmpOffsetLines[index - 1, 1] = arcPtArray[1]; //SPY
+                tmpOffsetLines[index - 1, 2] = arcPtArray[2]; //EPX
+                tmpOffsetLines[index - 1, 3] = arcPtArray[3]; //EPY      
+                tmpOffsetLines[index - 1, 4] = lcllineArcDataArray[index, 4];//CPX
+                tmpOffsetLines[index - 1, 5] = lcllineArcDataArray[index, 5];//CPY
+                tmpOffsetLines[index - 1, 6] = lcllineArcDataArray[index, 6]-lcloffset;//Radius             
             }
+            logData(tmpOffsetLines, "tmpOffsetLines");
+        }
+
+        public double[] arcSPandEP(double placeHolderLineX1, double placeHolderLineY1, double placeHolderLineX2, double placeHolderLineY2, double[] arcPt1, double[] arcPt2)
+        {
+            double[] arcPts = new double[4];
+            //find first arc pt to replace...
+            double phpt1toarcpt1 = distance(placeHolderLineX1, placeHolderLineY1, arcPt1[0], arcPt1[1]);
+            double phpt1toarcpt2 = distance(placeHolderLineX1, placeHolderLineY1, arcPt2[0], arcPt2[1]);
+            double phpt2toarcpt1 = distance(placeHolderLineX2, placeHolderLineY2, arcPt1[0], arcPt1[1]);
+            double phpt2toarcpt2 = distance(placeHolderLineX2, placeHolderLineY2, arcPt2[0], arcPt2[1]);
+            if (phpt1toarcpt1 <= phpt1toarcpt2)
+            {
+                arcPts[0] = arcPt1[0];
+                arcPts[1] = arcPt1[1];
+            }
+            else
+            {
+                arcPts[0] = arcPt2[0];
+                arcPts[1] = arcPt2[1];
+            }
+            if (phpt2toarcpt1 <= phpt2toarcpt2)
+            {
+                arcPts[2] = arcPt1[0];
+                arcPts[3] = arcPt1[1];
+            }
+            else
+            {
+                arcPts[2] = arcPt2[0];
+                arcPts[3] = arcPt2[1];
+            }
+            return arcPts;
+        }
+
+        public double[] nearestNeighbor(double[] intersectionPts, double lineSPX, double lineSPY, double lineEPX, double lineEPY, out bool RepSP)
+        {
+            double[] nearestPt = new double[2];
+            double[] tmpDistArray = new double[4];
+            tmpDistArray[0] = distance(intersectionPts[0], intersectionPts[1], lineSPX, lineSPY);
+            tmpDistArray[1] = distance(intersectionPts[2], intersectionPts[3], lineSPX, lineSPY);
+            tmpDistArray[2] = distance(intersectionPts[0], intersectionPts[1], lineEPX, lineEPY);
+            tmpDistArray[3] = distance(intersectionPts[2], intersectionPts[3], lineEPX, lineEPY);
+
+            double min = tmpDistArray.Min();
+
+            if (tmpDistArray[0] == min || tmpDistArray[2] == min)
+            {
+                nearestPt[0] = intersectionPts[0];
+                nearestPt[1] = intersectionPts[1];
+            }
+            if (tmpDistArray[1] == min || tmpDistArray[3] == min)
+            {
+                nearestPt[0] = intersectionPts[2];
+                nearestPt[1] = intersectionPts[3];
+            }
+            RepSP = tmpDistArray[0] == min ? true : false || tmpDistArray[1] == min ? true : false;
+            return nearestPt;
         }
 
         #region Prepare Lines for Export
@@ -547,6 +672,7 @@ namespace Conversational_Machining_App
                 }
             }
         }
+
         #endregion
 
         #region Geometry Methods
@@ -754,6 +880,12 @@ namespace Conversational_Machining_App
             return offsPt;
         }
 
+        public double distance(double x1, double y1, double x2, double y2)
+        {
+            double dist = Math.Sqrt(Math.Pow(x1 - x2, 2) + Math.Pow(y1 - y2, 2));
+            return dist;
+        }
+
         double boundaryWidth()
         {
             double max = xVal.Max();
@@ -779,8 +911,8 @@ namespace Conversational_Machining_App
             double B = Math.Pow(xInterceptPt - h, 2);
             double C = Math.Sqrt(A - B);
 
-            double yp = C+k;
-            double yn = -C+k;
+            double yp = C + k;
+            double yn = -C + k;
 
             intersectionPts[0] = xInterceptPt;
             intersectionPts[1] = yp;
