@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Windows.Forms;
 using System.IO;
+using System.Linq;
 
 namespace Conversational_Machining_App
 {
@@ -44,6 +45,7 @@ namespace Conversational_Machining_App
         public List<List<double[]>> demoSqr = new List<List<double[]>>();
         public List<List<double[]>> orderedLineArcList = new List<List<double[]>>();
         public List<List<double[]>> combinedOrderedList = new List<List<double[]>>();
+
 
         PolyLineOffset pathOffsets = new PolyLineOffset();
 
@@ -924,6 +926,7 @@ namespace Conversational_Machining_App
             makePtList();
             pathOffsets.createPath();
             plot1.vlines = pathOffsets.offsetLines;
+            //plot1.vlines = pathOffsets.offsetArcsAndLines;
             plot1.reset();
         }
 
@@ -1060,16 +1063,32 @@ namespace Conversational_Machining_App
                     }
                     createArcListPairs(tmpArcList);
                 }
-            }                
+            }
             //For computing offsets
             createOrderedLineArcArray();
             pathOffsets.lines = lineList;
             pathOffsets.arcs = arcDataList;
             pathOffsets.combinedLineArcList = combinedOrderedList;
+            pathOffsets.fullcontourForIntersectionCheck = combineLists(lineList, arcList);
             getXYArrays(true);
             //For displaying base DXF lines and arcs
             plot1.lines = lineList;
             plot1.arcs = arcList;
+        }
+
+        public List<List<double[]>> combineLists(List<List<double[]>> list1, List<List<double[]>> list2)
+        {
+            List<List<double[]>> retList = new List<List<double[]>>();
+            foreach (List<double[]> item in list1)
+            {
+                retList.Add(item);
+            }
+
+            foreach (List<double[]> item in list2)
+            {
+                retList.Add(item);
+            }
+            return retList;
         }
 
         public void createOrderedLineArcArray()
@@ -1172,7 +1191,7 @@ namespace Conversational_Machining_App
                     }
                 }
             }
-            if (orderedLineArcList.Count==objCount)
+            if (orderedLineArcList.Count == objCount)
             {
                 combinedOrderedList = orderedLineArcList;
             }
@@ -1180,7 +1199,7 @@ namespace Conversational_Machining_App
             {
                 createOrderedLineArcArrayAltMethod();
             }
-            
+
         }
 
         public void createOrderedLineArcArrayAltMethod()

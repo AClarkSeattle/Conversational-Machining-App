@@ -17,8 +17,11 @@ namespace Conversational_Machining_App
         public List<string[]> DXFlines = new List<string[]>();
         public List<List<double[]>> lines = new List<List<double[]>>();//no longer used
         public List<List<double[]>> arcs = new List<List<double[]>>();//no longer used
-        public List<List<double[]>> combinedLineArcList = new List<List<double[]>>();//
-        public List<List<double[]>> offsetLines = new List<List<double[]>>();
+        public List<List<double[]>> combinedLineArcList = new List<List<double[]>>();//intermediate step with tmp line
+        public List<List<double[]>> fullcontourForIntersectionCheck = new List<List<double[]>>();//
+        public List<List<double[]>> offsetLines = new List<List<double[]>>(); //
+        public List<List<double[]>> offsetArcsAndLines = new List<List<double[]>>(); //for display
+        public double[,] fullOffsetDataSet;
         double width = 0;
         double height = 0;
         double flipUVector = 1;
@@ -52,7 +55,7 @@ namespace Conversational_Machining_App
             height = boundaryHeight();
             greaterBoundary = (width >= height) ? width * 50 : height * 50;
 
-            double[,] tmplinearray = new double[combinedLineArcList.Count, 7];
+            double[,] tmplinearray = new double[combinedLineArcList.Count, 9];
             List<int> arcIndices = new List<int>();
 
             int i = 0;
@@ -74,6 +77,8 @@ namespace Conversational_Machining_App
                     tmplinearray[i, 4] = line[0][0]; //CPX
                     tmplinearray[i, 5] = line[0][1]; //CPY
                     tmplinearray[i, 6] = line[0][2]; //Radius
+                    //tmplinearray[i, 7] = line[0][3]; //start angle
+                    //tmplinearray[i, 8] = line[0][4]; //end angle
                     arcIndices.Add(i);
                 }
                 i++;
@@ -151,7 +156,10 @@ namespace Conversational_Machining_App
             }
             offsetPtsToLines(offsetPtArray);
             //insert arc offset... new arc radius = R-offset
-            calcArcOffsPts(tmplinearray, offsetLines, offset, arcIndices);
+            double[,] fullOffsetLinesAndArcs = calcArcOffsPts(tmplinearray, offsetLines, offset, arcIndices);
+            fullOffsetDataSet = fullOffsetLinesAndArcs;
+            //at this point you can... 1) Generate G-Code for the offset curve and 2) process the offsets into lines for display in the plotter.
+            //offsetPtsToArcLines(fullOffsetLinesAndArcs);
         }
 
         public void logData(double[,] data, string fileName)
@@ -296,11 +304,14 @@ namespace Conversational_Machining_App
             int precision = 8;
             decimal lclXPt = 0;
             decimal lclYPt = 0;
+            //List<List<double[]>> lclContourList = fullcontourForIntersectionCheck;
+            List<List<double[]>> lclContourList = combinedLineArcList;
+
             if (offsetInside == true)
             {
                 if (Double.IsNaN(tmpIntersectionCase1[0]) == false)
                 {
-                    if (OddOrEven(combinedLineArcList, tmpIntersectionCase1) == false)
+                    if (OddOrEven(lclContourList, tmpIntersectionCase1) == false)
                     {
                         lclXPt = Math.Round(Convert.ToDecimal(tmpIntersectionCase1[0]), precision);
                         lclYPt = Math.Round(Convert.ToDecimal(tmpIntersectionCase1[1]), precision);
@@ -311,7 +322,7 @@ namespace Conversational_Machining_App
                 }
                 if (Double.IsNaN(tmpIntersectionCase2[0]) == false)
                 {
-                    if (OddOrEven(combinedLineArcList, tmpIntersectionCase2) == false)
+                    if (OddOrEven(lclContourList, tmpIntersectionCase2) == false)
                     {
                         lclXPt = Math.Round(Convert.ToDecimal(tmpIntersectionCase2[0]), precision);
                         lclYPt = Math.Round(Convert.ToDecimal(tmpIntersectionCase2[1]), precision);
@@ -322,7 +333,7 @@ namespace Conversational_Machining_App
                 }
                 if (Double.IsNaN(tmpIntersectionCase3[0]) == false)
                 {
-                    if (OddOrEven(combinedLineArcList, tmpIntersectionCase3) == false)
+                    if (OddOrEven(lclContourList, tmpIntersectionCase3) == false)
                     {
                         lclXPt = Math.Round(Convert.ToDecimal(tmpIntersectionCase3[0]), precision);
                         lclYPt = Math.Round(Convert.ToDecimal(tmpIntersectionCase3[1]), precision);
@@ -333,7 +344,7 @@ namespace Conversational_Machining_App
                 }
                 if (Double.IsNaN(tmpIntersectionCase4[0]) == false)
                 {
-                    if (OddOrEven(combinedLineArcList, tmpIntersectionCase4) == false)
+                    if (OddOrEven(lclContourList, tmpIntersectionCase4) == false)
                     {
                         lclXPt = Math.Round(Convert.ToDecimal(tmpIntersectionCase4[0]), precision);
                         lclYPt = Math.Round(Convert.ToDecimal(tmpIntersectionCase4[1]), precision);
@@ -347,28 +358,28 @@ namespace Conversational_Machining_App
             {
                 if (Double.IsNaN(tmpIntersectionCase1[0]) == false)
                 {
-                    if (OddOrEven(combinedLineArcList, tmpIntersectionCase1) == true)
+                    if (OddOrEven(lclContourList, tmpIntersectionCase1) == true)
                     {
                         return tmpIntersectionCase1;
                     }
                 }
                 if (Double.IsNaN(tmpIntersectionCase2[0]) == false)
                 {
-                    if (OddOrEven(combinedLineArcList, tmpIntersectionCase2) == true)
+                    if (OddOrEven(lclContourList, tmpIntersectionCase2) == true)
                     {
                         return tmpIntersectionCase2;
                     }
                 }
                 if (Double.IsNaN(tmpIntersectionCase3[0]) == false)
                 {
-                    if (OddOrEven(combinedLineArcList, tmpIntersectionCase3) == true)
+                    if (OddOrEven(lclContourList, tmpIntersectionCase3) == true)
                     {
                         return tmpIntersectionCase3;
                     }
                 }
                 if (Double.IsNaN(tmpIntersectionCase4[0]) == false)
                 {
-                    if (OddOrEven(combinedLineArcList, tmpIntersectionCase4) == true)
+                    if (OddOrEven(lclContourList, tmpIntersectionCase4) == true)
                     {
                         return tmpIntersectionCase4;
                     }
@@ -438,11 +449,11 @@ namespace Conversational_Machining_App
             }
         }
 
-        public void calcArcOffsPts(double[,] lcllineArcDataArray, List<List<double[]>> lcloffsetLines, double lcloffset, List<int> lclarcIndex)
+        public double[,] calcArcOffsPts(double[,] lcllineArcDataArray, List<List<double[]>> lcloffsetLines, double lcloffset, List<int> lclarcIndex)
         {
             //An arc will never be the first element in the list... unless all of the elements are arcs!
             //in lcloffsetLines, the faux arc elements are located at lclarcIndex-1
-            double[,] tmpOffsetLines = new double[lcloffsetLines.Count, 7];
+            double[,] tmpOffsetLines = new double[lcloffsetLines.Count, 9];
             int i = 0;
             foreach (List<double[]> offsLine in lcloffsetLines)
             {
@@ -497,7 +508,6 @@ namespace Conversational_Machining_App
                 double b1 = yintercept(m1, line1SPX, line1SPY);
                 double b2 = yintercept(m2, line2SPX, line2SPY);
 
-                //in lcllineArcDataArray the arc information is located at lclarcIndex
                 double tmph = lcllineArcDataArray[index, 4];
                 double tmpk = lcllineArcDataArray[index, 5];
                 double tmpr = lcllineArcDataArray[index, 6];
@@ -505,7 +515,11 @@ namespace Conversational_Machining_App
                 double[] tmpArcIntersectionPts2 = new double[4];
                 double[] sharedIntersectionPtArc1 = new double[2];
                 double[] sharedIntersectionPtArc2 = new double[2];
+                //Check if arc is concave or convex in the figure... Concave arcs will have the cpX,cpY outside of the figure (0 or even intersections)
+                double[] circleCP = { tmph, tmpk };
 
+                lcloffset = OddOrEven(fullcontourForIntersectionCheck, circleCP) == true ? lcloffset * -1 : lcloffset;
+                //in lcllineArcDataArray the arc information is located at lclarcIndex
                 if (useAltIntersectMethodLine1 == false)
                 {
                     bool replaceSP = false;
@@ -588,9 +602,59 @@ namespace Conversational_Machining_App
                 tmpOffsetLines[index - 1, 3] = arcPtArray[3]; //EPY      
                 tmpOffsetLines[index - 1, 4] = lcllineArcDataArray[index, 4];//CPX
                 tmpOffsetLines[index - 1, 5] = lcllineArcDataArray[index, 5];//CPY
-                tmpOffsetLines[index - 1, 6] = lcllineArcDataArray[index, 6]-lcloffset;//Radius             
+                tmpOffsetLines[index - 1, 6] = lcllineArcDataArray[index, 6] - lcloffset;//Radius 
+                //angles in degrees
+                tmpOffsetLines[index - 1, 7] = offsetPtAngle(arcPtArray[0], arcPtArray[1], lcllineArcDataArray[index, 4], lcllineArcDataArray[index, 5]);
+                tmpOffsetLines[index - 1, 8] = offsetPtAngle(arcPtArray[2], arcPtArray[3], lcllineArcDataArray[index, 4], lcllineArcDataArray[index, 5]);
             }
-            logData(tmpOffsetLines, "tmpOffsetLines");
+            return tmpOffsetLines;
+            //logData(tmpOffsetLines, "tmpOffsetLines");
+        }
+
+        public double offsetPtAngle(double x, double y, double cpX, double cpY)
+        {
+            //For(x, y) in quadrant 1, 0 < θ < π / 2.
+            //For(x, y) in quadrant 2, π / 2 < θ≤π.
+            //For(x, y) in quadrant 3, -π < θ < -π / 2.
+            //For(x, y) in quadrant 4, -π / 2 < θ < 0.
+
+            //If y is 0 and x is not negative, θ = 0.
+            //If y is 0 and x is negative, θ = π.
+            //If y is positive and x is 0, θ = π / 2.
+            //If y is negative and x is 0, θ = -π / 2.
+            //If y is 0 and x is 0, θ = 0.
+
+            double i = x - cpX;
+            double j = y - cpY;
+            double[] uVec = unitvector(i, j);
+            double angle = Math.Atan2(uVec[1], uVec[0]);
+
+            if (y == 0 && x > 0) return 0;
+            if (y == 0 && x < 0) return 180;
+            if (y > 0 && x == 0) return 90;
+            if (y < 0 && x == 0) return 270;
+
+            if(0<angle && angle<Math.PI/2)
+            {
+                //quadrant 1    
+                return ((Math.Abs(angle)) * (180 / Math.PI));
+            }
+            if(Math.PI/2<angle && angle<=Math.PI)
+            {
+                //quadrant 2
+                return ((Math.Abs(angle)) * (180 / Math.PI));    
+            }
+            if(-Math.PI<angle && angle<-Math.PI/2)
+            {
+                //quadrant 3 
+                return (360 - (Math.Abs(angle)) * (180 / Math.PI));
+            }
+            if(-Math.PI/2<angle && angle<0)
+            {
+                //quadrant 4
+                return (360 - (Math.Abs(angle)) * (180 / Math.PI));
+            }
+            return 0;
         }
 
         public double[] arcSPandEP(double placeHolderLineX1, double placeHolderLineY1, double placeHolderLineX2, double placeHolderLineY2, double[] arcPt1, double[] arcPt2)
@@ -652,7 +716,10 @@ namespace Conversational_Machining_App
         #region Prepare Lines for Export
         public void offsetPtsToLines(double[,] pts)
         {
-            for (int i = 0; i < pts.Length / pts.Rank - 1; i++)
+            //offsetLines contains a temporary line representing the offset of the line connecting the end points of the original arc
+            //it is necessary to have this line to perform the nearest neighbor calculation for intersection
+            int dim1 = pts.GetLength(1);
+            for (int i = 0; i < pts.Length / dim1 - 1; i++)
             {
                 List<double[]> tmpLineList = new List<double[]>();
                 double[] tmpLinePt1 = { pts[i, 0], pts[i, 1] }; //X, Y Start
@@ -670,6 +737,96 @@ namespace Conversational_Machining_App
                     tmpLineListLast.Add(tmpLinePt2Last);
                     offsetLines.Add(tmpLineListLast);
                 }
+            }
+        }
+
+        public void offsetPtsToArcLines(double[,] linesAndArcs)
+        {
+            //this is a mess
+            int dim1 = linesAndArcs.GetLength(1);
+            for (int i = 0; i < linesAndArcs.Length / dim1 - 1; i++)
+            {
+                List<double[]> tmpLineList = new List<double[]>();
+                if (linesAndArcs[i, 6] == 0) //line data
+                {
+                    double[] tmpLinePt1 = { linesAndArcs[i, 0], linesAndArcs[i, 1] }; //X, Y Start
+                    double[] tmpLinePt2 = { linesAndArcs[i, 2], linesAndArcs[i, 3] }; //X, Y End
+                    tmpLineList.Add(tmpLinePt1);
+                    tmpLineList.Add(tmpLinePt2);
+                    offsetArcsAndLines.Add(tmpLineList);
+                }
+                else
+                {
+                    double[] lclArcData=new double[9];
+                    for(int j=0; j< linesAndArcs.Length /dim1; j++)
+                    {
+                        lclArcData[j] = linesAndArcs[i, j];
+                    }
+                    processArcOffsets(lclArcData);
+                }
+
+                if (i == (linesAndArcs.Length / dim1) - 2) //Connect last point with first point...
+                {
+                    int last = (linesAndArcs.Length / dim1) - 1;
+                    List<double[]> tmpLineListLast = new List<double[]>();
+                    double[] tmpLinePt1Last = { linesAndArcs[last, 0], linesAndArcs[last, 1] }; //X, Y Start
+                    double[] tmpLinePt2Last = { linesAndArcs[0, 0], linesAndArcs[0, 1] }; //X, Y End
+                    tmpLineListLast.Add(tmpLinePt1Last);
+                    tmpLineListLast.Add(tmpLinePt2Last);
+                    offsetArcsAndLines.Add(tmpLineListLast);
+                }
+            }
+        }
+
+        public void processArcOffsets(double[] arcData)
+        {
+            double cpx = arcData[4];
+            double cpy = arcData[5];
+            double radius = arcData[6];
+            double startAngle = arcData[3] * Math.PI / 180;//start angle
+            double endAngle = arcData[4] * Math.PI / 180;//end angle
+            double rMultiplier = 1;
+            rMultiplier = (radius > 1) ? radius : 1;
+            double Angle = startAngle;
+            double sweepAngle = 0;
+            sweepAngle = (startAngle > endAngle) ? (2 * Math.PI - startAngle) + endAngle : endAngle - startAngle;
+
+            double angleIncr = (sweepAngle) / Convert.ToDouble(Convert.ToInt16((10 * rMultiplier)));
+            int numberofSections = Convert.ToInt16((sweepAngle) / angleIncr);
+            int sectioncount = 0;
+
+            List<double[]> tmpArcList = new List<double[]>();
+
+            while (sectioncount <= numberofSections)
+            {
+                double[] tmpArcPt1 = { 0, 0 };
+                double x = (radius * Math.Cos(Angle)) + cpx;
+                double y = (radius * Math.Sin(Angle)) + cpy;
+                tmpArcPt1[0] = x;
+                tmpArcPt1[1] = y;
+                tmpArcList.Add(tmpArcPt1);
+                Angle += angleIncr;
+                sectioncount++;
+            }
+            createArcListPairs(tmpArcList);
+        }
+
+        public void createArcListPairs(List<double[]> arcpts)
+        {
+            for (int i = 0; i < arcpts.Count; i++)
+            {
+                List<double[]> tmpList = new List<double[]>();
+                if (i == 0)
+                {
+                    tmpList.Add(arcpts[0]);
+                    tmpList.Add(arcpts[1]);
+                }
+                else
+                {
+                    tmpList.Add(arcpts[i - 1]);
+                    tmpList.Add(arcpts[i]);
+                }
+                offsetArcsAndLines.Add(tmpList);
             }
         }
 
