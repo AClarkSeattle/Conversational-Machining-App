@@ -925,8 +925,8 @@ namespace Conversational_Machining_App
             readDXFtoPTList();
             makePtList();
             pathOffsets.createPath();
-            plot1.vlines = pathOffsets.offsetLines;
-            //plot1.vlines = pathOffsets.offsetArcsAndLines;
+            //plot1.vlines = pathOffsets.offsetLines;
+            plot1.vlines = pathOffsets.offsetArcsAndLines;
             plot1.reset();
         }
 

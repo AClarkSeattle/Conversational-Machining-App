@@ -77,8 +77,6 @@ namespace Conversational_Machining_App
                     tmplinearray[i, 4] = line[0][0]; //CPX
                     tmplinearray[i, 5] = line[0][1]; //CPY
                     tmplinearray[i, 6] = line[0][2]; //Radius
-                    //tmplinearray[i, 7] = line[0][3]; //start angle
-                    //tmplinearray[i, 8] = line[0][4]; //end angle
                     arcIndices.Add(i);
                 }
                 i++;
@@ -154,12 +152,19 @@ namespace Conversational_Machining_App
                     offsetPtArray[last, 1] = intersectionPt_last[1];
                 }
             }
-            offsetPtsToLines(offsetPtArray);
+            offsetPtsToLines(offsetPtArray);//this is an intermediate step.  
+            //It contains a temporary offset line from the line between the start and end point of arc segments.
+
             //insert arc offset... new arc radius = R-offset
             double[,] fullOffsetLinesAndArcs = calcArcOffsPts(tmplinearray, offsetLines, offset, arcIndices);
             fullOffsetDataSet = fullOffsetLinesAndArcs;
             //at this point you can... 1) Generate G-Code for the offset curve and 2) process the offsets into lines for display in the plotter.
-            //offsetPtsToArcLines(fullOffsetLinesAndArcs);
+            offsetPtsToArcLines(fullOffsetLinesAndArcs);
+        }
+
+        public void GenerateGCode()
+        {
+            //Connect end point of last line to start point of new line...
         }
 
         public void logData(double[,] data, string fileName)
@@ -713,7 +718,7 @@ namespace Conversational_Machining_App
             return nearestPt;
         }
 
-        #region Prepare Lines for Export
+        #region Prepare Offset Lines
         public void offsetPtsToLines(double[,] pts)
         {
             //offsetLines contains a temporary line representing the offset of the line connecting the end points of the original arc
@@ -742,9 +747,10 @@ namespace Conversational_Machining_App
 
         public void offsetPtsToArcLines(double[,] linesAndArcs)
         {
-            //this is a mess
+            //this code should prepare offset lines and arc segments in an order array for plotting
+            int dim0 = linesAndArcs.GetLength(0);
             int dim1 = linesAndArcs.GetLength(1);
-            for (int i = 0; i < linesAndArcs.Length / dim1 - 1; i++)
+            for (int i = 0; i < dim0; i++)
             {
                 List<double[]> tmpLineList = new List<double[]>();
                 if (linesAndArcs[i, 6] == 0) //line data
@@ -758,22 +764,11 @@ namespace Conversational_Machining_App
                 else
                 {
                     double[] lclArcData=new double[9];
-                    for(int j=0; j< linesAndArcs.Length /dim1; j++)
+                    for(int j=0; j< dim1; j++)
                     {
                         lclArcData[j] = linesAndArcs[i, j];
                     }
                     processArcOffsets(lclArcData);
-                }
-
-                if (i == (linesAndArcs.Length / dim1) - 2) //Connect last point with first point...
-                {
-                    int last = (linesAndArcs.Length / dim1) - 1;
-                    List<double[]> tmpLineListLast = new List<double[]>();
-                    double[] tmpLinePt1Last = { linesAndArcs[last, 0], linesAndArcs[last, 1] }; //X, Y Start
-                    double[] tmpLinePt2Last = { linesAndArcs[0, 0], linesAndArcs[0, 1] }; //X, Y End
-                    tmpLineListLast.Add(tmpLinePt1Last);
-                    tmpLineListLast.Add(tmpLinePt2Last);
-                    offsetArcsAndLines.Add(tmpLineListLast);
                 }
             }
         }
@@ -783,8 +778,8 @@ namespace Conversational_Machining_App
             double cpx = arcData[4];
             double cpy = arcData[5];
             double radius = arcData[6];
-            double startAngle = arcData[3] * Math.PI / 180;//start angle
-            double endAngle = arcData[4] * Math.PI / 180;//end angle
+            double startAngle = arcData[7] * Math.PI / 180;//start angle
+            double endAngle = arcData[8] * Math.PI / 180;//end angle
             double rMultiplier = 1;
             rMultiplier = (radius > 1) ? radius : 1;
             double Angle = startAngle;
@@ -1080,14 +1075,18 @@ namespace Conversational_Machining_App
 
         public double[] lineCircleIntersectionPts(double m, double b, double h, double k, double r)
         {
+            //line segments that are tangent to the arc will have two identical intersection pts.
             double[] intersectionPts = new double[4];
 
             double A = Math.Pow(m, 2) + 1;
             double B = 2 * (m * b - m * k - h);
             double C = Math.Pow(k, 2) - Math.Pow(r, 2) + Math.Pow(h, 2) - (2 * b * k) + Math.Pow(b, 2);
+            double D = (Math.Sqrt(Math.Pow(B, 2) - 4 * A * C));
 
-            double xp = (-B + Math.Sqrt(Math.Pow(B, 2) - 4 * A * C)) / (2 * A);
-            double xn = (-B - Math.Sqrt(Math.Pow(B, 2) - 4 * A * C)) / (2 * A);
+            D =double.IsNaN(D) ? 0 : D;
+          
+            double xp = (-B + D)/ (2 * A);
+            double xn = (-B - D) / (2 * A);
             double yp = m * xp + b;
             double yn = m * xn + b;
 
