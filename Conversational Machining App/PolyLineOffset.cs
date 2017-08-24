@@ -15,8 +15,8 @@ namespace Conversational_Machining_App
         public double toolR = .1;
         public double finishPass = .05;
         public List<string[]> DXFlines = new List<string[]>();
-        public List<List<double[]>> lines = new List<List<double[]>>();//no longer used
-        public List<List<double[]>> arcs = new List<List<double[]>>();//no longer used
+        //public List<List<double[]>> lines = new List<List<double[]>>();//no longer used
+        //public List<List<double[]>> arcs = new List<List<double[]>>();//no longer used
         public List<List<double[]>> combinedLineArcList = new List<List<double[]>>();//intermediate step with tmp line
         public List<List<double[]>> fullcontourForIntersectionCheck = new List<List<double[]>>();//
         public List<List<double[]>> offsetLines = new List<List<double[]>>(); //
@@ -28,11 +28,14 @@ namespace Conversational_Machining_App
         double flipVVector = 1;
         double greaterBoundary = 5000;
         double ttlOffsetDist = .25;
+        bool isConcave = false;
         bool debug = true;
 
         public void createPath()
         {
-            //lineCircleIntersectionPts(0, 4.90, 2.30288795, 5, .65);
+
+            offsetArcsAndLines.Clear();
+            offsetLines.Clear();
 
             double offset = 0;
             int offsetCount = 1;
@@ -522,8 +525,14 @@ namespace Conversational_Machining_App
                 double[] sharedIntersectionPtArc2 = new double[2];
                 //Check if arc is concave or convex in the figure... Concave arcs will have the cpX,cpY outside of the figure (0 or even intersections)
                 double[] circleCP = { tmph, tmpk };
-
+                lcloffset = Math.Abs(lcloffset);
                 lcloffset = OddOrEven(fullcontourForIntersectionCheck, circleCP) == true ? lcloffset * -1 : lcloffset;
+                //Arc is concave...
+                bool lclisConcave = lcloffset == Math.Abs(lcloffset) ? false : true;
+                if (lclisConcave == true)
+                {
+                    isConcave = true;
+                }
                 //in lcllineArcDataArray the arc information is located at lclarcIndex
                 if (useAltIntersectMethodLine1 == false)
                 {
@@ -639,22 +648,22 @@ namespace Conversational_Machining_App
             if (y > 0 && x == 0) return 90;
             if (y < 0 && x == 0) return 270;
 
-            if(0<angle && angle<Math.PI/2)
+            if (0 < angle && angle < Math.PI / 2)
             {
                 //quadrant 1    
                 return ((Math.Abs(angle)) * (180 / Math.PI));
             }
-            if(Math.PI/2<angle && angle<=Math.PI)
+            if (Math.PI / 2 < angle && angle <= Math.PI)
             {
                 //quadrant 2
-                return ((Math.Abs(angle)) * (180 / Math.PI));    
+                return ((Math.Abs(angle)) * (180 / Math.PI));
             }
-            if(-Math.PI<angle && angle<-Math.PI/2)
+            if (-Math.PI < angle && angle < -Math.PI / 2)
             {
                 //quadrant 3 
                 return (360 - (Math.Abs(angle)) * (180 / Math.PI));
             }
-            if(-Math.PI/2<angle && angle<0)
+            if (-Math.PI / 2 < angle && angle < 0)
             {
                 //quadrant 4
                 return (360 - (Math.Abs(angle)) * (180 / Math.PI));
@@ -763,17 +772,17 @@ namespace Conversational_Machining_App
                 }
                 else
                 {
-                    double[] lclArcData=new double[9];
-                    for(int j=0; j< dim1; j++)
+                    double[] lclArcData = new double[9];
+                    for (int j = 0; j < dim1; j++)
                     {
                         lclArcData[j] = linesAndArcs[i, j];
                     }
-                    processArcOffsets(lclArcData);
+                    processArcOffsets(lclArcData, isConcave);
                 }
             }
         }
 
-        public void processArcOffsets(double[] arcData)
+        public void processArcOffsets(double[] arcData, bool isArcConcave)
         {
             double cpx = arcData[4];
             double cpy = arcData[5];
@@ -786,8 +795,13 @@ namespace Conversational_Machining_App
             double sweepAngle = 0;
             sweepAngle = (startAngle > endAngle) ? (2 * Math.PI - startAngle) + endAngle : endAngle - startAngle;
 
-            double angleIncr = (sweepAngle) / Convert.ToDouble(Convert.ToInt16((10 * rMultiplier)));
+            sweepAngle = isArcConcave == true ? 2 * Math.PI - sweepAngle : sweepAngle;
+
+            double angleIncr = sweepAngle / Convert.ToDouble(Convert.ToInt16((10 * rMultiplier)));
             int numberofSections = Convert.ToInt16((sweepAngle) / angleIncr);
+
+            angleIncr = isArcConcave == true ? -angleIncr : angleIncr;
+
             int sectioncount = 0;
 
             List<double[]> tmpArcList = new List<double[]>();
@@ -804,6 +818,7 @@ namespace Conversational_Machining_App
                 sectioncount++;
             }
             createArcListPairs(tmpArcList);
+            isConcave = false;
         }
 
         public void createArcListPairs(List<double[]> arcpts)
@@ -1083,9 +1098,9 @@ namespace Conversational_Machining_App
             double C = Math.Pow(k, 2) - Math.Pow(r, 2) + Math.Pow(h, 2) - (2 * b * k) + Math.Pow(b, 2);
             double D = (Math.Sqrt(Math.Pow(B, 2) - 4 * A * C));
 
-            D =double.IsNaN(D) ? 0 : D;
-          
-            double xp = (-B + D)/ (2 * A);
+            D = double.IsNaN(D) ? 0 : D;
+
+            double xp = (-B + D) / (2 * A);
             double xn = (-B - D) / (2 * A);
             double yp = m * xp + b;
             double yn = m * xn + b;

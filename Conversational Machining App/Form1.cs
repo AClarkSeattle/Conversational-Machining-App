@@ -1066,8 +1066,8 @@ namespace Conversational_Machining_App
             }
             //For computing offsets
             createOrderedLineArcArray();
-            pathOffsets.lines = lineList;
-            pathOffsets.arcs = arcDataList;
+            //pathOffsets.lines = lineList; //No longer used
+            //pathOffsets.arcs = arcDataList; //No longer used
             pathOffsets.combinedLineArcList = combinedOrderedList;
             pathOffsets.fullcontourForIntersectionCheck = combineLists(lineList, arcList);
             getXYArrays(true);
