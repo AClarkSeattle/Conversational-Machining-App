@@ -33,7 +33,6 @@ namespace Conversational_Machining_App
 
         public void createPath()
         {
-
             offsetArcsAndLines.Clear();
             offsetLines.Clear();
 
@@ -161,7 +160,7 @@ namespace Conversational_Machining_App
             //insert arc offset... new arc radius = R-offset
             double[,] fullOffsetLinesAndArcs = calcArcOffsPts(tmplinearray, offsetLines, offset, arcIndices);
             fullOffsetDataSet = fullOffsetLinesAndArcs;
-            //at this point you can... 1) Generate G-Code for the offset curve and 2) process the offsets into lines for display in the plotter.
+            ////at this point you can... 1) Generate G-Code for the offset curve and 2) process the offsets into lines for display in the plotter.
             offsetPtsToArcLines(fullOffsetLinesAndArcs);
         }
 
@@ -459,7 +458,7 @@ namespace Conversational_Machining_App
 
         public double[,] calcArcOffsPts(double[,] lcllineArcDataArray, List<List<double[]>> lcloffsetLines, double lcloffset, List<int> lclarcIndex)
         {
-            //An arc will never be the first element in the list... unless all of the elements are arcs!
+            //An arc will never be the first element in the list but it can be the 2nd (1th) element
             //in lcloffsetLines, the faux arc elements are located at lclarcIndex-1
             double[,] tmpOffsetLines = new double[lcloffsetLines.Count, 9];
             int i = 0;
@@ -472,19 +471,21 @@ namespace Conversational_Machining_App
                 i++;
             }
             List<double[]> offsetArcs = new List<double[]>();
-            int arrayLength = lcllineArcDataArray.Length / 7;
+            int arrayLength = lcllineArcDataArray.Length / 9;
             foreach (int index in lclarcIndex)
             {
+                int prevLineIndex = index==1?arrayLength-1:index-2;
+                int nextLineIndex = index;
                 //in tmpOffsetLines the temporary offset line is located at lclarcIndex-1
-                double line1SPX = tmpOffsetLines[index - 2, 0];
-                double line1SPY = tmpOffsetLines[index - 2, 1];
-                double line1EPX = tmpOffsetLines[index - 2, 2];
-                double line1EPY = tmpOffsetLines[index - 2, 3];
+                double line1SPX = tmpOffsetLines[prevLineIndex, 0];
+                double line1SPY = tmpOffsetLines[prevLineIndex, 1];
+                double line1EPX = tmpOffsetLines[prevLineIndex, 2];
+                double line1EPY = tmpOffsetLines[prevLineIndex, 3];
 
-                double line2SPX = tmpOffsetLines[index, 0];
-                double line2SPY = tmpOffsetLines[index, 1];
-                double line2EPX = tmpOffsetLines[index, 2];
-                double line2EPY = tmpOffsetLines[index, 3];
+                double line2SPX = tmpOffsetLines[nextLineIndex, 0];
+                double line2SPY = tmpOffsetLines[nextLineIndex, 1];
+                double line2EPX = tmpOffsetLines[nextLineIndex, 2];
+                double line2EPY = tmpOffsetLines[nextLineIndex, 3];
 
                 double m1 = 0;
                 double m2 = 0;
@@ -541,13 +542,13 @@ namespace Conversational_Machining_App
                     double[] tmpNN = nearestNeighbor(tmpArcIntersectionPts1, line1SPX, line1SPY, line1EPX, line1EPY, out replaceSP);
                     if (replaceSP == true)
                     {
-                        tmpOffsetLines[index - 2, 0] = tmpNN[0];
-                        tmpOffsetLines[index - 2, 1] = tmpNN[1];
+                        tmpOffsetLines[prevLineIndex, 0] = tmpNN[0];
+                        tmpOffsetLines[prevLineIndex, 1] = tmpNN[1];
                     }
                     else
                     {
-                        tmpOffsetLines[index - 2, 2] = tmpNN[0];
-                        tmpOffsetLines[index - 2, 3] = tmpNN[1];
+                        tmpOffsetLines[prevLineIndex, 2] = tmpNN[0];
+                        tmpOffsetLines[prevLineIndex, 3] = tmpNN[1];
                     }
                     sharedIntersectionPtArc1 = tmpNN;
                 }
@@ -558,13 +559,13 @@ namespace Conversational_Machining_App
                     double[] tmpNN = nearestNeighbor(tmpArcIntersectionPts1, line1SPX, line1SPY, line1EPX, line1EPY, out replaceSP);
                     if (replaceSP == true)
                     {
-                        tmpOffsetLines[index - 2, 0] = tmpNN[0];
-                        tmpOffsetLines[index - 2, 1] = tmpNN[1];
+                        tmpOffsetLines[prevLineIndex, 0] = tmpNN[0];
+                        tmpOffsetLines[prevLineIndex, 1] = tmpNN[1];
                     }
                     else
                     {
-                        tmpOffsetLines[index - 2, 2] = tmpNN[0];
-                        tmpOffsetLines[index - 2, 3] = tmpNN[1];
+                        tmpOffsetLines[prevLineIndex, 2] = tmpNN[0];
+                        tmpOffsetLines[prevLineIndex, 3] = tmpNN[1];
                     }
                     sharedIntersectionPtArc1 = tmpNN;
                 }
@@ -575,13 +576,13 @@ namespace Conversational_Machining_App
                     double[] tmpNN = nearestNeighbor(tmpArcIntersectionPts2, line2SPX, line2SPY, line2EPX, line2EPY, out replaceSP);
                     if (replaceSP == true)
                     {
-                        tmpOffsetLines[index, 0] = tmpNN[0];
-                        tmpOffsetLines[index, 1] = tmpNN[1];
+                        tmpOffsetLines[nextLineIndex, 0] = tmpNN[0];
+                        tmpOffsetLines[nextLineIndex, 1] = tmpNN[1];
                     }
                     else
                     {
-                        tmpOffsetLines[index, 2] = tmpNN[0];
-                        tmpOffsetLines[index, 3] = tmpNN[1];
+                        tmpOffsetLines[nextLineIndex, 2] = tmpNN[0];
+                        tmpOffsetLines[nextLineIndex, 3] = tmpNN[1];
                     }
                     sharedIntersectionPtArc2 = tmpNN;
                 }
@@ -592,13 +593,13 @@ namespace Conversational_Machining_App
                     double[] tmpNN = nearestNeighbor(tmpArcIntersectionPts2, line2SPX, line2SPY, line2EPX, line2EPY, out replaceSP);
                     if (replaceSP == true)
                     {
-                        tmpOffsetLines[index, 0] = tmpNN[0];
-                        tmpOffsetLines[index, 1] = tmpNN[1];
+                        tmpOffsetLines[nextLineIndex, 0] = tmpNN[0];
+                        tmpOffsetLines[nextLineIndex, 1] = tmpNN[1];
                     }
                     else
                     {
-                        tmpOffsetLines[index, 2] = tmpNN[0];
-                        tmpOffsetLines[index, 3] = tmpNN[1];
+                        tmpOffsetLines[nextLineIndex, 2] = tmpNN[0];
+                        tmpOffsetLines[nextLineIndex, 3] = tmpNN[1];
                     }
                     sharedIntersectionPtArc2 = tmpNN;
                 }
