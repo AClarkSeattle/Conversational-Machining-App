@@ -27,26 +27,32 @@ namespace Conversational_Machining_App
         double flipUVector = 1;
         double flipVVector = 1;
         double greaterBoundary = 5000;
-        double ttlOffsetDist = .25;
+        double ttlOffsetDist = 0;
         bool isConcave = false;
-        bool debug = true;
+        bool debug = false;
 
         public void createPath()
         {
             offsetArcsAndLines.Clear();
             offsetLines.Clear();
 
-            double offset = 0;
-            int offsetCount = 1;
+            ttlOffsetDist = toolR + finishPass;
 
+            //double offset = 0;
+            int offsetCount = 0;
+            //logData(combinedLineArcList, "data");
             createOffsetLines(toolR);
+
             if (debug == false)
             {
-                while (offset <= ttlOffsetDist)
+                //logData(combinedLineArcList, "dataMod");
+                double pathLength = pathDistance(combinedLineArcList);
+                while (pathLength >= ttlOffsetDist)
                 {
-                    offset = toolR * offsetCount + finishPass;
+                    offsetLines.Clear();
                     offsetCount++;
-                    createOffsetLines(offset);
+                    createOffsetLines(ttlOffsetDist);
+                    pathLength = pathDistance(combinedLineArcList);
                 }
             }
         }
@@ -155,13 +161,266 @@ namespace Conversational_Machining_App
                 }
             }
             offsetPtsToLines(offsetPtArray);//this is an intermediate step.  
-            //It contains a temporary offset line from the line between the start and end point of arc segments.
+                                            //It contains a temporary offset line from the line between the start and end point of arc segments.
 
             //insert arc offset... new arc radius = R-offset
+            fullOffsetDataSet = null;
             double[,] fullOffsetLinesAndArcs = calcArcOffsPts(tmplinearray, offsetLines, offset, arcIndices);
             fullOffsetDataSet = fullOffsetLinesAndArcs;
+
             ////at this point you can... 1) Generate G-Code for the offset curve and 2) process the offsets into lines for display in the plotter.
             offsetPtsToArcLines(fullOffsetLinesAndArcs);
+            //reset combinedarcList
+            resetCombinedLineArcList(ttlOffsetDist);
+        }
+
+        public void resetCombinedLineArcList(double ttloffset)
+        {
+            List<List<double[]>> lclLineArcList = new List<List<double[]>>();//intermediate step with tmp line
+            int dim1 = fullOffsetDataSet.GetLength(1);
+            for (int i = 0; i < fullOffsetDataSet.Length / dim1; i++)
+            {
+                double sum4toEnd = fullOffsetDataSet[i, 4] + fullOffsetDataSet[i, 5] + fullOffsetDataSet[i, 6] + fullOffsetDataSet[i, 4] +
+                    fullOffsetDataSet[i, 8];
+                if (sum4toEnd == 0)
+                {
+                    //line
+                    List<double[]> tmpListPts = new List<double[]>();
+                    double[] tmpPt1 = new double[2];
+                    double[] tmpPt2 = new double[2];
+                    tmpPt1[0] = fullOffsetDataSet[i, 0];
+                    tmpPt1[1] = fullOffsetDataSet[i, 1];
+                    tmpPt2[0] = fullOffsetDataSet[i, 2];
+                    tmpPt2[1] = fullOffsetDataSet[i, 3];
+                    tmpListPts.Add(tmpPt1);
+                    tmpListPts.Add(tmpPt2);
+                    lclLineArcList.Add(tmpListPts);
+                }
+                else
+                {
+                    List<double[]> tmpListArcs = new List<double[]>();
+                    double[] tmpArc = new double[9];
+                    tmpArc[5] = fullOffsetDataSet[i, 0]; //SPX
+                    tmpArc[6] = fullOffsetDataSet[i, 1]; //SPY
+                    tmpArc[7] = fullOffsetDataSet[i, 2]; //EPX
+                    tmpArc[8] = fullOffsetDataSet[i, 3]; //EPY
+                    tmpArc[0] = fullOffsetDataSet[i, 4]; //CPX
+                    tmpArc[1] = fullOffsetDataSet[i, 5]; //CPY
+                    tmpArc[2] = fullOffsetDataSet[i, 6]; //Radius
+                    tmpArc[3] = fullOffsetDataSet[i, 7]; //Start Angle
+                    tmpArc[4] = fullOffsetDataSet[i, 8]; //End Angle
+                    tmpListArcs.Add(tmpArc);
+                    lclLineArcList.Add(tmpListArcs);
+                }
+            }
+            //Remove arcs smaller than the offset distance and re-connect the adjacent lines
+            List<List<double[]>> lclLineArcListRemSmallArc = new List<List<double[]>>();//intermediate step with tmp line
+            foreach (List<double[]> geo in lclLineArcList)
+            {
+                if (geo.Count == 1)
+                {
+                    if (geo[0][2] > ttlOffsetDist)
+                    {
+                        lclLineArcListRemSmallArc.Add(geo);
+                    }
+                }
+                if (geo.Count == 2)
+                {
+                    lclLineArcListRemSmallArc.Add(geo);
+                }
+            }
+            List<List<double[]>> lclLineArcListRemSmallArcAndLine = new List<List<double[]>>();//intermediate step with tmp line
+            //Remove lines smaller than the offset distance (small arcs were previously removed in the last step.  
+            foreach (List<double[]> geo in lclLineArcListRemSmallArc)
+            {
+                if (geo.Count == 2)
+                {
+                    double length = distance(geo[0][0], geo[0][1], geo[1][0], geo[1][1]);
+                    if (length > ttlOffsetDist)
+                    {
+                        lclLineArcListRemSmallArcAndLine.Add(geo);
+                    }
+                }
+                else
+                {
+                    lclLineArcListRemSmallArcAndLine.Add(geo);
+                }
+            }
+
+            //Change order so that first element is a line...
+            List<List<double[]>> lclOrderedLineArcList = new List<List<double[]>>();//intermediate step with tmp line
+            List<double[]> zeroLine = new List<double[]>();
+            List<double[]> oneLine = new List<double[]>();
+            List<double[]> twoLine = new List<double[]>();
+            int z = 0;
+            foreach (List<double[]> geo in lclLineArcListRemSmallArcAndLine)
+            {
+                if (z == 0)
+                {
+                    zeroLine = geo;
+                }
+                if (z == 1)
+                {
+                    oneLine = geo;
+                }
+                if (z == 2)
+                {
+                    twoLine = geo;
+                }
+                else if (z != 0 && z != 1 && z != 2)
+                {
+                    lclOrderedLineArcList.Add(geo);
+                }
+                z++;
+            }
+            if (zeroLine.Count > 0)
+            {
+                lclOrderedLineArcList.Add(zeroLine);
+                lclOrderedLineArcList.Add(oneLine);
+                lclOrderedLineArcList.Add(twoLine);
+            }
+
+            //Then.. set combinedLineArcList = lcl
+
+            //Reconnect lines here...
+            //Case 1... reconnect line-line
+            //Case 2... reconnect arc-line (or line-arc)
+            //Case 3... reconnect arc-arc
+
+            List<List<double[]>> lclOrderedConnectedLineArcList = new List<List<double[]>>();//intermediate step with tmp line
+            lclOrderedConnectedLineArcList = reconnectGeometry(lclOrderedLineArcList);
+
+            combinedLineArcList.Clear();
+            combinedLineArcList = lclOrderedConnectedLineArcList;
+        }
+
+        public List<List<double[]>> reconnectGeometry(List<List<double[]>> geometryList)
+        {
+            double geoTol = .0001;
+            List<List<double[]>> lclConnectedList = new List<List<double[]>>();
+            foreach (List<double[]> segment in geometryList)
+            {
+                lclConnectedList.Add(segment);
+            }
+            double prevSPX = 0;
+            double prevSPY = 0;
+            double prevEPX = 0;
+            double prevEPY = 0;
+            int index = 0;
+            //if geometry is all connected... return geometryList
+            foreach (List<double[]> geoElement in lclConnectedList)
+            {
+                double thisSPX = 0;
+                double thisSPY = 0;
+                double thisEPX = 0;
+                double thisEPY = 0;
+                bool thisArc = false;
+                if (index == 0)
+                {
+                    if (geoElement.Count == 1)
+                    {
+                        prevSPX = geoElement[0][5];
+                        prevSPY = geoElement[0][6];
+                        prevEPX = geoElement[0][7];
+                        prevEPY = geoElement[0][8];
+                    }
+                    else
+                    {
+                        prevSPX = geoElement[0][0];
+                        prevSPY = geoElement[0][1];
+                        prevEPX = geoElement[1][0];
+                        prevEPY = geoElement[1][1];
+                    }
+                }
+                else
+                {
+                    if (geoElement.Count == 1)
+                    {
+                        thisSPX = geoElement[0][5];
+                        thisSPY = geoElement[0][6];
+                        thisEPX = geoElement[0][7];
+                        thisEPY = geoElement[0][8];
+                        thisArc = true;
+                    }
+                    else
+                    {
+                        thisSPX = geoElement[0][0];
+                        thisSPY = geoElement[0][1];
+                        thisEPX = geoElement[1][0];
+                        thisEPY = geoElement[1][1];
+                    }
+
+                    bool noIntersect = false;
+                    double[] vertex = lineLineIntersectionPts(prevSPX, prevSPY, prevEPX, prevEPY, thisSPX, thisSPY, thisEPX, thisEPY, out noIntersect);
+                    double distToPrevVertex;
+                    bool prevSPXisCloser = nearestNeighbor(vertex, prevSPX, prevSPY, prevEPX, prevEPY, out distToPrevVertex);
+                    double distToThisVertex;
+                    bool thisSPXisCloser = nearestNeighbor(vertex, thisSPX, thisSPY, thisEPX, thisEPY, out distToThisVertex);
+
+                    if (thisSPXisCloser == true && distToThisVertex >= geoTol)
+                    {
+                        if (thisArc == true)
+                        {
+                            geoElement[0][5] = vertex[0];
+                            geoElement[0][6] = vertex[1];
+                            List<double[]> lclZeroElement = geometryList[0];
+                            lclZeroElement[1][0] = vertex[0];
+                            lclZeroElement[1][1] = vertex[1];
+                            geometryList[0] = lclZeroElement;
+                        }
+                        else
+                        {
+                            geoElement[0][0] = vertex[0];
+                            geoElement[0][1] = vertex[1];
+                            List<double[]> lclZeroElement = geometryList[index - 1];
+                            lclZeroElement[1][0] = vertex[0];
+                            lclZeroElement[1][1] = vertex[1];
+                            geometryList[index - 1] = lclZeroElement;
+                        }
+                        if (index == geometryList.Count - 1)
+                        {
+                            List<double[]> lclZeroElement = geometryList[0];
+                            List<double[]> lclLastElement = geometryList[index];
+                            lclLastElement[1][0] = lclZeroElement[0][0];
+                            lclLastElement[1][1] = lclZeroElement[0][1];
+                            geometryList[index] = lclLastElement;
+                        }
+                    }
+
+                    prevSPX = thisSPX;
+                    prevSPY = thisSPY;
+                    prevEPX = thisEPX;
+                    prevEPY = thisEPY;
+                }
+                index++;
+            }
+
+            return geometryList;
+
+            //return lclConnectedList;
+        }
+
+        public double pathDistance(List<List<double[]>> path)
+        {
+            double dist = 0;
+            foreach (List<double[]> geo in path)
+            {
+                if (geo.Count == 1)
+                {
+                    //arc distance
+                    double r = geo[0][2];
+                    double startAngle = geo[0][3];
+                    double endAngle = geo[0][4];
+                    double angle = endAngle - startAngle < 0 ? 360 - Math.Abs(endAngle - startAngle) : endAngle - startAngle;
+                    dist += 2 * Math.PI * r * (angle / 360);
+                }
+                else
+                {
+                    //line distance
+                    dist += distance(geo[0][0], geo[0][1], geo[1][0], geo[1][1]);
+                }
+            }
+            return dist;
         }
 
         public void GenerateGCode()
@@ -176,6 +435,28 @@ namespace Conversational_Machining_App
                 foreach (double item in data)
                 {
                     writer.WriteLine(item);
+                    writer.WriteLine("\n");
+                }
+                writer.Close();
+            }
+        }
+
+        public void logData(List<List<double[]>> data, string fileName)
+        {
+            using (StreamWriter writer = new StreamWriter(@"C:\Users\Adam Clark\Documents\Visual Studio 2015\Projects\Conversational Machining App\" + fileName, true))
+            {
+                foreach (List<double[]> item in data)
+                {
+                    foreach (double[] array in item)
+                    {
+                        foreach (double element in array)
+                        {
+                            writer.WriteLine(element);
+                            writer.WriteLine("\n");
+                        }
+
+                    }
+                    writer.WriteLine("\n");
                     writer.WriteLine("\n");
                 }
                 writer.Close();
@@ -474,7 +755,7 @@ namespace Conversational_Machining_App
             int arrayLength = lcllineArcDataArray.Length / 9;
             foreach (int index in lclarcIndex)
             {
-                int prevLineIndex = index==1?arrayLength-1:index-2;
+                int prevLineIndex = index == 1 ? arrayLength - 1 : index - 2;
                 int nextLineIndex = index;
                 //in tmpOffsetLines the temporary offset line is located at lclarcIndex-1
                 double line1SPX = tmpOffsetLines[prevLineIndex, 0];
@@ -726,6 +1007,30 @@ namespace Conversational_Machining_App
             }
             RepSP = tmpDistArray[0] == min ? true : false || tmpDistArray[1] == min ? true : false;
             return nearestPt;
+        }
+
+        public bool nearestNeighbor(double[] intersectionPt, double lineSPX, double lineSPY, double lineEPX, double lineEPY, out double dist)
+        {
+            //checks if sp or ep of line is closer to intersection pt
+            double[] nearestPt = new double[2];
+            double[] tmpDistArray = new double[2];
+            tmpDistArray[0] = distance(intersectionPt[0], intersectionPt[1], lineSPX, lineSPY);
+            tmpDistArray[1] = distance(intersectionPt[0], intersectionPt[1], lineEPX, lineEPY);
+
+            double min = tmpDistArray.Min();
+
+            if (tmpDistArray[0] == min)
+            {
+                dist = tmpDistArray[0];
+                return true;
+            }
+            if (tmpDistArray[1] == min)
+            {
+                dist = tmpDistArray[1];
+                return false;
+            }
+            dist = 0;
+            return false;
         }
 
         #region Prepare Offset Lines
@@ -1071,6 +1376,26 @@ namespace Conversational_Machining_App
         #endregion
 
         #region Intersection Methods
+
+        public double[] lineLineIntersectionPts(double x1, double y1, double x2, double y2, double x3, double y3, double x4, double y4, out bool noIntersection)
+        {
+            double[] coordinates = new double[2];
+            double denominator = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+            if (denominator == 0)
+            {
+                noIntersection = true;
+                return coordinates;
+            }
+
+            double Px = ((x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4)) / denominator;
+            double Py = ((x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4)) / denominator;
+
+            coordinates[0] = Px;
+            coordinates[1] = Py;
+
+            noIntersection = false;
+            return coordinates;
+        }
 
         public double[] lineCircleIntersectionPts(double xInterceptPt, double h, double k, double r)
         {
