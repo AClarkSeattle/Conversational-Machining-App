@@ -7,7 +7,7 @@ using System.IO;
 
 namespace Conversational_Machining_App
 {
-    class PolyLineOffset
+    public class PolyLineOffset
     {
         public double[] xVal { get; set; }
         public double[] yVal { get; set; }
@@ -29,7 +29,7 @@ namespace Conversational_Machining_App
         double greaterBoundary = 5000;
         double ttlOffsetDist = 0;
         bool isConcave = false;
-        bool debug = false;
+        bool debug = true;
 
         public void createPath()
         {
@@ -57,8 +57,15 @@ namespace Conversational_Machining_App
             }
         }
 
+        public void createOffsetLines(double offset, bool useStruct)
+        {
+
+        }
+
         public void createOffsetLines(double offset)
         {
+            //start here tomorrow... check lines and adjacent arcs. If the line and arc tangent, the bisector vector is the enpoint
+            //of the line pointing toward the cp of the arc...
             width = boundaryWidth();
             height = boundaryHeight();
             greaterBoundary = (width >= height) ? width * 50 : height * 50;
@@ -96,34 +103,86 @@ namespace Conversational_Machining_App
             for (int j = 0; j < (numOfLines - 1); j++)
             {
                 //Do all of the line stuff
+                bool jisArc = false;
+                bool jplusOneIsArc = false;
                 flipUVector = 1;
                 flipVVector = 1;
                 double[] tmpVec = new double[2];
                 //This is where we want to point the vectors away from the common vertex
                 double[] u = new double[2];
                 double[] v = new double[2];
+                double[] t = new double[2];
+                double[] arcCP = new double[2];
                 double[] vertexPt = new double[2];
                 double[] intersectionPt = new double[2];
                 List<double[]> lineCoordinates = new List<double[]>();
 
+                jisArc = tmplinearray[j, 6] == 0 ? false : true;
+                jplusOneIsArc = tmplinearray[j+1, 6] == 0 ? false : true;
+                
                 vertexPt = getVertexPt(tmplinearray[j, 0], tmplinearray[j, 1], tmplinearray[j, 2], tmplinearray[j, 3], tmplinearray[j + 1, 0],
                     tmplinearray[j + 1, 1], tmplinearray[j + 1, 2], tmplinearray[j + 1, 3]);
 
                 lineCoordinates = OffsetLineCoordinates(tmplinearray[j, 0], tmplinearray[j, 1], tmplinearray[j, 2], tmplinearray[j, 3], offset);
 
-                u = unitvector(tmplinearray[j, 0], tmplinearray[j, 1], tmplinearray[j, 2], tmplinearray[j, 3], true);
-                //Correct u orientation
-                u[0] = flipUVector * u[0];
-                u[1] = flipUVector * u[1];
-                v = unitvector(tmplinearray[j + 1, 0], tmplinearray[j + 1, 1], tmplinearray[j + 1, 2], tmplinearray[j + 1, 3], true);
-                //Correct v orientation
-                v[0] = flipVVector * v[0];
-                v[1] = flipVVector * v[1];
-                tmpVec = vectorbisector(u, v);
-                tmpVec = unitvector(tmpVec[0], tmpVec[1]);
+                //Check arc tangency... this only works on line-arc connections
+                bool tangent = false;
+                if(jisArc | jplusOneIsArc)
+                {
+                    if(jisArc)
+                    {            
+                        double[] dummyPts = new double[4];
+                        if (Math.Abs(tmplinearray[j+1,0]-tmplinearray[j+1,2])<.0001)
+                        {
+                            dummyPts = lineCircleIntersectionPts(tmplinearray[j + 1, 0], tmplinearray[j, 4], tmplinearray[j, 5], tmplinearray[j, 6], out tangent);
+                        }
+                        else
+                        {
+                            double m = slope(tmplinearray[j + 1, 0], tmplinearray[j + 1, 1], tmplinearray[j + 1, 2], tmplinearray[j + 1, 3]);
+                            double b = yintercept(m, tmplinearray[j + 1, 0], tmplinearray[j + 1, 1]);
+                            dummyPts = lineCircleIntersectionPts(m,b, tmplinearray[j, 4], tmplinearray[j, 5], tmplinearray[j, 6], out tangent);
+                        }
+                        arcCP[0] = tmplinearray[j, 4];
+                        arcCP[1] = tmplinearray[j, 5];        
+                    }
+                    if (jplusOneIsArc)
+                    {
+                        double[] dummyPts = new double[4];
+                        if (Math.Abs(tmplinearray[j, 0] - tmplinearray[j, 2]) < .0001)
+                        {
+                            dummyPts = lineCircleIntersectionPts(tmplinearray[j, 0], tmplinearray[j+1, 4], tmplinearray[j+1, 5], tmplinearray[j+1, 6], out tangent);
+                        }
+                        else
+                        {
+                            double m = slope(tmplinearray[j, 0], tmplinearray[j, 1], tmplinearray[j, 2], tmplinearray[j, 3]);
+                            double b = yintercept(m, tmplinearray[j, 0], tmplinearray[j, 1]);
+                            dummyPts = lineCircleIntersectionPts(m, b, tmplinearray[j+1, 4], tmplinearray[j+1, 5], tmplinearray[j+1, 6], out tangent);
+                        }
+                        arcCP[0] = tmplinearray[j+1, 4];
+                        arcCP[1] = tmplinearray[j+1, 5];
+                    }
+                }
 
-                intersectionPt = GetOffsetIntersectionPt(lineCoordinates, vertexPt, tmpVec, greaterBoundary);
-
+                if (!tangent)
+                {
+                    u = unitvector(tmplinearray[j, 0], tmplinearray[j, 1], tmplinearray[j, 2], tmplinearray[j, 3], true);
+                    //Correct u orientation
+                    u[0] = flipUVector * u[0];
+                    u[1] = flipUVector * u[1];
+                    v = unitvector(tmplinearray[j + 1, 0], tmplinearray[j + 1, 1], tmplinearray[j + 1, 2], tmplinearray[j + 1, 3], true);
+                    //Correct v orientation
+                    v[0] = flipVVector * v[0];
+                    v[1] = flipVVector * v[1];
+                    tmpVec = vectorbisector(u, v);
+                    tmpVec = unitvector(tmpVec[0], tmpVec[1]);
+                    intersectionPt = GetOffsetIntersectionPt(lineCoordinates, vertexPt, tmpVec, greaterBoundary);
+                }
+                else
+                {
+                    t = unitvector(vertexPt[0], vertexPt[1], arcCP[0], arcCP[1],true);
+                    intersectionPt = GetOffsetIntersectionPt(lineCoordinates, vertexPt, t, greaterBoundary);
+                }
+                
                 offsetPtArray[j, 0] = intersectionPt[0];
                 offsetPtArray[j, 1] = intersectionPt[1];
 
@@ -135,27 +194,76 @@ namespace Conversational_Machining_App
                     //This is where we want to point the vectors away from the common vertex
                     double[] u_last = new double[2];
                     double[] v_first = new double[2];
+                    double[] tlast = new double[2];
+                    double[] arcCPlast = new double[2];
                     double[] vertexPt_first = new double[2];
                     double[] intersectionPt_last = new double[2];
                     List<double[]> lineCoordinates_last = new List<double[]>();
                     int last = numOfLines - 1;
+
+                    jisArc = tmplinearray[last, 6] == 0 ? false : true;
+                    jplusOneIsArc = tmplinearray[0, 6] == 0 ? false : true;
 
                     vertexPt_first = getVertexPt(tmplinearray[0, 0], tmplinearray[0, 1], tmplinearray[0, 2], tmplinearray[0, 3], tmplinearray[last, 0],
                     tmplinearray[last, 1], tmplinearray[last, 2], tmplinearray[last, 3]);
 
                     lineCoordinates_last = OffsetLineCoordinates(tmplinearray[last, 0], tmplinearray[last, 1], tmplinearray[last, 2], tmplinearray[last, 3], offset);
 
-                    u_last = unitvector(tmplinearray[0, 0], tmplinearray[0, 1], tmplinearray[0, 2], tmplinearray[0, 3], true);
-                    //Correct u orientation
-                    u_last[0] = flipUVector * u_last[0];
-                    u_last[1] = flipUVector * u_last[1];
-                    v_first = unitvector(tmplinearray[last, 0], tmplinearray[last, 1], tmplinearray[last, 2], tmplinearray[last, 3], true);
-                    //Correct v orientation
-                    v_first[0] = flipVVector * v_first[0];
-                    v_first[1] = flipVVector * v_first[1];
-                    tmpVec_last = vectorbisector(u_last, v_first);
+                    bool lasttangent = false;
+                    if (jisArc | jplusOneIsArc)
+                    {
+                        if (jisArc)
+                        {
+                            double[] dummyPts = new double[4];
+                            if (Math.Abs(tmplinearray[0, 0] - tmplinearray[0, 2]) < .0001)
+                            {
+                                dummyPts = lineCircleIntersectionPts(tmplinearray[0, 0], tmplinearray[last, 4], tmplinearray[last, 5], tmplinearray[last, 6], out lasttangent);
+                            }
+                            else
+                            {
+                                double m = slope(tmplinearray[0, 0], tmplinearray[0, 1], tmplinearray[0, 2], tmplinearray[0, 3]);
+                                double b = yintercept(m, tmplinearray[0, 0], tmplinearray[0, 1]);
+                                dummyPts = lineCircleIntersectionPts(m, b, tmplinearray[last, 4], tmplinearray[last, 5], tmplinearray[last, 6], out lasttangent);
+                            }
+                            arcCP[0] = tmplinearray[last, 4];
+                            arcCP[1] = tmplinearray[last, 5];
+                        }
+                        if (jplusOneIsArc)
+                        {
+                            double[] dummyPts = new double[4];
+                            if (Math.Abs(tmplinearray[last, 0] - tmplinearray[last, 2]) < .0001)
+                            {
+                                dummyPts = lineCircleIntersectionPts(tmplinearray[last, 0], tmplinearray[0, 4], tmplinearray[0, 5], tmplinearray[0, 6], out lasttangent);
+                            }
+                            else
+                            {
+                                double m = slope(tmplinearray[last, 0], tmplinearray[last, 1], tmplinearray[last, 2], tmplinearray[last, 3]);
+                                double b = yintercept(m, tmplinearray[last, 0], tmplinearray[last, 1]);
+                                dummyPts = lineCircleIntersectionPts(m, b, tmplinearray[0, 4], tmplinearray[0, 5], tmplinearray[0, 6], out lasttangent);
+                            }
+                            arcCP[0] = tmplinearray[0, 4];
+                            arcCP[1] = tmplinearray[0, 5];
+                        }
+                    }
 
-                    intersectionPt_last = GetOffsetIntersectionPt(lineCoordinates_last, vertexPt_first, tmpVec_last, greaterBoundary);
+                    if (!lasttangent)
+                    {
+                        u_last = unitvector(tmplinearray[0, 0], tmplinearray[0, 1], tmplinearray[0, 2], tmplinearray[0, 3], true);
+                        //Correct u orientation
+                        u_last[0] = flipUVector * u_last[0];
+                        u_last[1] = flipUVector * u_last[1];
+                        v_first = unitvector(tmplinearray[last, 0], tmplinearray[last, 1], tmplinearray[last, 2], tmplinearray[last, 3], true);
+                        //Correct v orientation
+                        v_first[0] = flipVVector * v_first[0];
+                        v_first[1] = flipVVector * v_first[1];
+                        tmpVec_last = vectorbisector(u_last, v_first);
+                        intersectionPt_last = GetOffsetIntersectionPt(lineCoordinates_last, vertexPt_first, tmpVec_last, greaterBoundary);
+                    }
+                    else
+                    {
+                        t = unitvector(vertexPt[0], vertexPt[1], arcCP[0], arcCP[1], true);
+                        intersectionPt = GetOffsetIntersectionPt(lineCoordinates, vertexPt, t, greaterBoundary);
+                    }
                     offsetPtArray[last, 0] = intersectionPt_last[0];
                     offsetPtArray[last, 1] = intersectionPt_last[1];
                 }
@@ -755,6 +863,7 @@ namespace Conversational_Machining_App
             int arrayLength = lcllineArcDataArray.Length / 9;
             foreach (int index in lclarcIndex)
             {
+                bool tangent = false;
                 int prevLineIndex = index == 1 ? arrayLength - 1 : index - 2;
                 int nextLineIndex = index;
                 //in tmpOffsetLines the temporary offset line is located at lclarcIndex-1
@@ -819,7 +928,7 @@ namespace Conversational_Machining_App
                 if (useAltIntersectMethodLine1 == false)
                 {
                     bool replaceSP = false;
-                    tmpArcIntersectionPts1 = lineCircleIntersectionPts(m1, b1, tmph, tmpk, tmpr - lcloffset);
+                    tmpArcIntersectionPts1 = lineCircleIntersectionPts(m1, b1, tmph, tmpk, tmpr - lcloffset, out tangent);
                     double[] tmpNN = nearestNeighbor(tmpArcIntersectionPts1, line1SPX, line1SPY, line1EPX, line1EPY, out replaceSP);
                     if (replaceSP == true)
                     {
@@ -836,7 +945,7 @@ namespace Conversational_Machining_App
                 else
                 {
                     bool replaceSP = false;
-                    tmpArcIntersectionPts1 = lineCircleIntersectionPts(xintercept1, tmph, tmpk, tmpr - lcloffset);
+                    tmpArcIntersectionPts1 = lineCircleIntersectionPts(xintercept1, tmph, tmpk, tmpr - lcloffset,out tangent);
                     double[] tmpNN = nearestNeighbor(tmpArcIntersectionPts1, line1SPX, line1SPY, line1EPX, line1EPY, out replaceSP);
                     if (replaceSP == true)
                     {
@@ -853,7 +962,7 @@ namespace Conversational_Machining_App
                 if (useAltIntersectMethodLine2 == false)
                 {
                     bool replaceSP = false;
-                    tmpArcIntersectionPts2 = lineCircleIntersectionPts(m2, b2, tmph, tmpk, tmpr - lcloffset);
+                    tmpArcIntersectionPts2 = lineCircleIntersectionPts(m2, b2, tmph, tmpk, tmpr - lcloffset,out tangent);
                     double[] tmpNN = nearestNeighbor(tmpArcIntersectionPts2, line2SPX, line2SPY, line2EPX, line2EPY, out replaceSP);
                     if (replaceSP == true)
                     {
@@ -870,7 +979,7 @@ namespace Conversational_Machining_App
                 else
                 {
                     bool replaceSP = false;
-                    tmpArcIntersectionPts2 = lineCircleIntersectionPts(xintercept2, tmph, tmpk, tmpr - lcloffset);
+                    tmpArcIntersectionPts2 = lineCircleIntersectionPts(xintercept2, tmph, tmpk, tmpr - lcloffset, out tangent);
                     double[] tmpNN = nearestNeighbor(tmpArcIntersectionPts2, line2SPX, line2SPY, line2EPX, line2EPY, out replaceSP);
                     if (replaceSP == true)
                     {
@@ -1377,6 +1486,13 @@ namespace Conversational_Machining_App
 
         #region Intersection Methods
 
+        public double[] circleCircleIntersectionPts()
+        {
+            ///TODO: create method for returning the intersection points of circles with circles
+            double[] retVal = new double[4];
+            return retVal;
+        }
+
         public double[] lineLineIntersectionPts(double x1, double y1, double x2, double y2, double x3, double y3, double x4, double y4, out bool noIntersection)
         {
             double[] coordinates = new double[2];
@@ -1397,8 +1513,9 @@ namespace Conversational_Machining_App
             return coordinates;
         }
 
-        public double[] lineCircleIntersectionPts(double xInterceptPt, double h, double k, double r)
+        public double[] lineCircleIntersectionPts(double xInterceptPt, double h, double k, double r, out bool isTangent)
         {
+            //for vertical lines that intersect with a circle or arc segment
             double[] intersectionPts = new double[4];
             double A = Math.Pow(r, 2);
             double B = Math.Pow(xInterceptPt - h, 2);
@@ -1411,10 +1528,13 @@ namespace Conversational_Machining_App
             intersectionPts[1] = yp;
             intersectionPts[2] = xInterceptPt;
             intersectionPts[3] = yn;
+
+            isTangent = yp == yn ? true : false;
+
             return intersectionPts;
         }
 
-        public double[] lineCircleIntersectionPts(double m, double b, double h, double k, double r)
+        public double[] lineCircleIntersectionPts(double m, double b, double h, double k, double r, out bool isTangent)
         {
             //line segments that are tangent to the arc will have two identical intersection pts.
             double[] intersectionPts = new double[4];
@@ -1435,6 +1555,9 @@ namespace Conversational_Machining_App
             intersectionPts[1] = yp;
             intersectionPts[2] = xn;
             intersectionPts[3] = yn;
+
+            isTangent = xp == xn && yp == yn ? true : false;
+
             return intersectionPts;
         }
 

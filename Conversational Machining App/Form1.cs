@@ -45,9 +45,10 @@ namespace Conversational_Machining_App
         public List<List<double[]>> demoSqr = new List<List<double[]>>();
         public List<List<double[]>> orderedLineArcList = new List<List<double[]>>();
         public List<List<double[]>> combinedOrderedList = new List<List<double[]>>();
-
+        public List<GeoDataClass.seg> GeometryObjects = new List<GeoDataClass.seg>();
 
         PolyLineOffset pathOffsets = new PolyLineOffset();
+        GeoDataClass gd = new GeoDataClass();
 
         Dictionary<string, int> dxfdictionary =
             new Dictionary<string, int>();
@@ -924,8 +925,21 @@ namespace Conversational_Machining_App
             openfilepathDXF = openFileDialog2.FileName;
             readDXFtoPTList();
             makePtList();
+
+            gd.orderGeoSegments();
+            //For computing offsets
+            createOrderedLineArcArray();
+            //pathOffsets.lines = lineList; //No longer used
+            //pathOffsets.arcs = arcDataList; //No longer used
+            pathOffsets.combinedLineArcList = combinedOrderedList;
+            pathOffsets.fullcontourForIntersectionCheck = combineLists(lineList, arcList);
+            getXYArrays(true);
+            //For displaying base DXF lines and arcs
+            plot1.lines = lineList;
+            plot1.arcs = arcList;
+
             pathOffsets.createPath();
-            //plot1.vlines = pathOffsets.offsetLines;
+            //For displaying offset lines and arcs
             plot1.vlines = pathOffsets.offsetArcsAndLines;
             plot1.reset();
         }
@@ -1000,11 +1014,13 @@ namespace Conversational_Machining_App
 
         public void makePtList()
         {
+            int i = 0;
             foreach (string[] feature in DXFlines)
             {
                 if (feature[0] == "AcDbLine")
                 {
                     List<double[]> tmpLineList = new List<double[]>();
+                    List<List<double[]>> tmpLineListList = new List<List<double[]>>();
                     double[] tmpLinePt1 = { 0, 0 }; //X, Y Start
                     double[] tmpLinePt2 = { 0, 0 }; //X, Y End
                     tmpLinePt1[0] = Convert.ToDouble(feature[2]);
@@ -1014,10 +1030,14 @@ namespace Conversational_Machining_App
                     tmpLineList.Add(tmpLinePt1);
                     tmpLineList.Add(tmpLinePt2);
                     lineList.Add(tmpLineList);
+                    tmpLineListList.Add(tmpLineList);
+                    fillGeoDataStruct(tmpLineListList, i);
+                    i++;
                 }
                 else if (feature[0] == "AcDbCircle")
                 {
-                    double[] tmpArcData = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };//X Center, Y Center, Radius, Start Angle, End Angle, StartPtX, StartPtY, EndPtX, EndPtY, )
+                    //X Center, Y Center, Radius, Start Angle, End Angle, StartPtX, StartPtY, EndPtX, EndPtY, )
+                    double[] tmpArcData = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
                     tmpArcData[0] = Convert.ToDouble(feature[2]);
                     tmpArcData[1] = Convert.ToDouble(feature[4]);
                     tmpArcData[2] = Convert.ToDouble(feature[8]);
@@ -1045,9 +1065,12 @@ namespace Conversational_Machining_App
                     tmpArcData[8] = (radius * Math.Sin(endAngle)) + cpy;
 
                     List<double[]> tmpArcDataList = new List<double[]>();
+                    List<List<double[]>> tmpArcDataListList= new List<List<double[]>>();
                     tmpArcDataList.Add(tmpArcData);
+                    tmpArcDataListList.Add(tmpArcDataList);
+                    fillGeoDataStruct(tmpArcDataListList, i);
                     arcDataList.Add(tmpArcDataList);
-
+                    i++;
                     List<double[]> tmpArcList = new List<double[]>();
 
                     while (sectioncount <= numberofSections)
@@ -1064,16 +1087,7 @@ namespace Conversational_Machining_App
                     createArcListPairs(tmpArcList);
                 }
             }
-            //For computing offsets
-            createOrderedLineArcArray();
-            //pathOffsets.lines = lineList; //No longer used
-            //pathOffsets.arcs = arcDataList; //No longer used
-            pathOffsets.combinedLineArcList = combinedOrderedList;
-            pathOffsets.fullcontourForIntersectionCheck = combineLists(lineList, arcList);
-            getXYArrays(true);
-            //For displaying base DXF lines and arcs
-            plot1.lines = lineList;
-            plot1.arcs = arcList;
+            gd.GeoData = GeometryObjects;
         }
 
         public List<List<double[]>> combineLists(List<List<double[]>> list1, List<List<double[]>> list2)
@@ -1155,10 +1169,10 @@ namespace Conversational_Machining_App
 
                         if (connected == false)
                         {
-                            double tolXEPSP = Math.Abs(Math.Abs(prevEPX) - Math.Abs(lineSPX));
-                            double tolYEPSP = Math.Abs(Math.Abs(prevEPY) - Math.Abs(lineSPY));
-                            double tolXEPEP = Math.Abs(Math.Abs(prevEPX) - Math.Abs(lineEPX));
-                            double tolYEPEP = Math.Abs(Math.Abs(prevEPY) - Math.Abs(lineEPY));
+                            double tolXEPSP = Math.Abs(prevEPX - lineSPX);
+                            double tolYEPSP = Math.Abs(prevEPY - lineSPY);
+                            double tolXEPEP = Math.Abs(prevEPX - lineEPX);
+                            double tolYEPEP = Math.Abs(prevEPY - lineEPY);
                             if (tolXEPSP <= tol && tolYEPSP <= tol)
                             {
                                 orderedLineArcList.Add(seg);
@@ -1199,12 +1213,56 @@ namespace Conversational_Machining_App
             {
                 createOrderedLineArcArrayAltMethod();
             }
+        }
 
+        public void fillGeoDataStruct(List<List<double[]>> GeoFeature, int index)
+        {
+            if (GeoFeature[0].Count == 2)
+            {
+                foreach (List<double[]> line in GeoFeature)
+                {
+                    GeoDataClass.seg s = new GeoDataClass.seg();
+                    s.isArc = false;
+                    s.segNumber = index;
+                    s.StartingPtX = line[0][0];
+                    s.StartingPtY = line[0][1];
+                    s.EndPtX =line[1][0];
+                    s.EndPtY =line[1][1];
+                    s.CenterPtX = 0;
+                    s.CenterPtY = 0;
+                    s.Radius = 0;
+                    s.StartingAngle = 0;//degrees
+                    s.EndingAngle = 0;//degrees
+                    GeometryObjects.Add(s);
+                }
+            }
+            else
+            {
+                foreach (List<double[]> arc in GeoFeature)
+                {
+                    GeoDataClass.seg s = new GeoDataClass.seg();
+                    s.isArc = true;
+                    s.segNumber = index;
+                    s.StartingPtX = arc[0][5];
+                    s.StartingPtY = arc[0][6];
+                    s.EndPtX = arc[0][7];
+                    s.EndPtY = arc[0][8];
+                    s.CenterPtX =arc[0][0];
+                    s.CenterPtY =arc[0][1];
+                    s.Radius = arc[0][2];
+                    s.StartingAngle = arc[0][3];//degrees
+                    s.EndingAngle = arc[0][4];//degrees
+                    GeometryObjects.Add(s);
+                }
+            }
         }
 
         public void createOrderedLineArcArrayAltMethod()
         {
+            //9/13 still a mess... moving toward ordering the struct vs. ordering with these methods.
+            //Start here tomorrow.... must figure out how to joint lines and arcs... sp to ep correctly AND efficiently!
             //For DXF files encoded with lines and arcs out of order...
+            orderedLineArcList.Clear();
             combinedOrderedList.Clear();
             //create ordered list of arcdatalist and linelist structures connecting the start points and end points
             foreach (List<double[]> line in lineList)
@@ -1223,9 +1281,11 @@ namespace Conversational_Machining_App
                     double arcSPY = arcdata[0][6];
                     double arcEPX = arcdata[0][7];
                     double arcEPY = arcdata[0][8];
-                    bool SPsConnected = lineArcConnection(lineSPX, lineSPY, arcSPX, arcSPY);
-                    bool EPsConnected = lineArcConnection(lineSPX, lineSPY, arcEPX, arcEPY);
-                    if (EPsConnected == true || SPsConnected == true)
+                    bool SPsSPsConnected = lineArcConnection(lineSPX, lineSPY, arcSPX, arcSPY);
+                    bool SPsEPsConnected = lineArcConnection(lineSPX, lineSPY, arcEPX, arcEPY);
+                    bool EpsSPsConnected = lineArcConnection(lineEPX, lineEPY, arcSPX, arcSPY);
+                    bool EPsEPsConnected = lineArcConnection(lineEPX, lineEPY, arcEPX, arcEPY);
+                    if (SPsSPsConnected || SPsEPsConnected || EpsSPsConnected || EPsEPsConnected)
                     {
                         tmparcdata = arcdata;
                         combinedOrderedList.Add(line);
@@ -1246,8 +1306,8 @@ namespace Conversational_Machining_App
 
         public bool lineArcConnection(double lineX, double lineY, double arcX, double arcY)
         {
-            double xtol = Math.Abs(Math.Abs(lineX) - Math.Abs(arcX));
-            double ytol = Math.Abs(Math.Abs(lineY) - Math.Abs(arcY));
+            double xtol = Math.Abs(lineX - arcX);
+            double ytol = Math.Abs(lineY - arcY);
             if (xtol <= .0001 && ytol <= .0001)
             {
                 return true;

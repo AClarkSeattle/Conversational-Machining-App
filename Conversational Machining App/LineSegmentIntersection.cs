@@ -41,6 +41,21 @@ namespace Conversational_Machining_App
         {
             return X * v.Y - Y * v.X;
         }
+        
+        public double DotProd(Vector v, Vector u)
+        {
+            return v.X*u.X+v.Y*u.Y;
+        }
+
+        public double Length(Vector v)
+        {
+            return Math.Sqrt(Math.Pow(v.X, 2) + Math.Pow(v.Y, 2));
+        }
+
+        public double Angle(Vector v, Vector u)
+        {
+            return Math.Acos(DotProd(v,u)/(Length(v)*Length(u)));
+        }
 
         public override bool Equals(object obj)
         {
