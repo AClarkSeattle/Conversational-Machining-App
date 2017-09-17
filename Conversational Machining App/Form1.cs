@@ -927,8 +927,9 @@ namespace Conversational_Machining_App
             makePtList();
 
             gd.orderGeoSegments();
+            fillListListFromStruct();
             //For computing offsets
-            createOrderedLineArcArray();
+            //createOrderedLineArcArray();
             //pathOffsets.lines = lineList; //No longer used
             //pathOffsets.arcs = arcDataList; //No longer used
             pathOffsets.combinedLineArcList = combinedOrderedList;
@@ -1065,7 +1066,7 @@ namespace Conversational_Machining_App
                     tmpArcData[8] = (radius * Math.Sin(endAngle)) + cpy;
 
                     List<double[]> tmpArcDataList = new List<double[]>();
-                    List<List<double[]>> tmpArcDataListList= new List<List<double[]>>();
+                    List<List<double[]>> tmpArcDataListList = new List<List<double[]>>();
                     tmpArcDataList.Add(tmpArcData);
                     tmpArcDataListList.Add(tmpArcDataList);
                     fillGeoDataStruct(tmpArcDataListList, i);
@@ -1090,6 +1091,87 @@ namespace Conversational_Machining_App
             gd.GeoData = GeometryObjects;
         }
 
+        public void fillGeoDataStruct(List<List<double[]>> GeoFeature, int index)
+        {
+            if (GeoFeature[0].Count == 2)
+            {
+                foreach (List<double[]> line in GeoFeature)
+                {
+                    GeoDataClass.seg s = new GeoDataClass.seg();
+                    s.isArc = false;
+                    s.segNumber = index;
+                    s.StartingPtX = line[0][0];
+                    s.StartingPtY = line[0][1];
+                    s.EndPtX = line[1][0];
+                    s.EndPtY = line[1][1];
+                    s.CenterPtX = 0;
+                    s.CenterPtY = 0;
+                    s.Radius = 0;
+                    s.StartingAngle = 0;//degrees
+                    s.EndingAngle = 0;//degrees
+                    GeometryObjects.Add(s);
+                }
+            }
+            else
+            {
+                foreach (List<double[]> arc in GeoFeature)
+                {
+                    GeoDataClass.seg s = new GeoDataClass.seg();
+                    s.isArc = true;
+                    s.segNumber = index;
+                    s.StartingPtX = arc[0][5];
+                    s.StartingPtY = arc[0][6];
+                    s.EndPtX = arc[0][7];
+                    s.EndPtY = arc[0][8];
+                    s.CenterPtX = arc[0][0];
+                    s.CenterPtY = arc[0][1];
+                    s.Radius = arc[0][2];
+                    s.StartingAngle = arc[0][3];//degrees
+                    s.EndingAngle = arc[0][4];//degrees
+                    GeometryObjects.Add(s);
+                }
+            }
+        }
+
+        public void fillListListFromStruct()
+        {
+            List<List<double[]>> g = new List<List<double[]>>();
+            foreach (GeoDataClass.seg s in gd.GeoData)
+            {
+                if (s.isArc)
+                {
+                    List<double[]> arc = new List<double[]>();
+                    double[] a = new double[9];
+                    a[0] = s.CenterPtX;
+                    a[1] = s.CenterPtY;
+                    a[2] = s.Radius;
+                    a[3] = s.StartingAngle;
+                    a[4] = s.EndingAngle;
+                    a[5] = s.StartingPtX;
+                    a[6] = s.StartingPtY;
+                    a[7] = s.EndPtX;
+                    a[8] = s.EndPtY;
+                    arc.Add(a);
+                    g.Add(arc);
+                }
+                else
+                {
+                    List<double[]> line = new List<double[]>();
+                    double[] sp = new double[2];
+                    double[] ep = new double[2];
+                    sp[0] = s.StartingPtX;
+                    sp[1] = s.StartingPtY;
+                    ep[0] = s.EndPtX;
+                    ep[1] = s.EndPtY;
+                    line.Add(sp);
+                    line.Add(ep);
+                    g.Add(line);
+                }
+            }
+            combinedOrderedList = g;
+        }
+
+        #region to be replaced by struct ordering method
         public List<List<double[]>> combineLists(List<List<double[]>> list1, List<List<double[]>> list2)
         {
             List<List<double[]>> retList = new List<List<double[]>>();
@@ -1215,48 +1297,6 @@ namespace Conversational_Machining_App
             }
         }
 
-        public void fillGeoDataStruct(List<List<double[]>> GeoFeature, int index)
-        {
-            if (GeoFeature[0].Count == 2)
-            {
-                foreach (List<double[]> line in GeoFeature)
-                {
-                    GeoDataClass.seg s = new GeoDataClass.seg();
-                    s.isArc = false;
-                    s.segNumber = index;
-                    s.StartingPtX = line[0][0];
-                    s.StartingPtY = line[0][1];
-                    s.EndPtX =line[1][0];
-                    s.EndPtY =line[1][1];
-                    s.CenterPtX = 0;
-                    s.CenterPtY = 0;
-                    s.Radius = 0;
-                    s.StartingAngle = 0;//degrees
-                    s.EndingAngle = 0;//degrees
-                    GeometryObjects.Add(s);
-                }
-            }
-            else
-            {
-                foreach (List<double[]> arc in GeoFeature)
-                {
-                    GeoDataClass.seg s = new GeoDataClass.seg();
-                    s.isArc = true;
-                    s.segNumber = index;
-                    s.StartingPtX = arc[0][5];
-                    s.StartingPtY = arc[0][6];
-                    s.EndPtX = arc[0][7];
-                    s.EndPtY = arc[0][8];
-                    s.CenterPtX =arc[0][0];
-                    s.CenterPtY =arc[0][1];
-                    s.Radius = arc[0][2];
-                    s.StartingAngle = arc[0][3];//degrees
-                    s.EndingAngle = arc[0][4];//degrees
-                    GeometryObjects.Add(s);
-                }
-            }
-        }
-
         public void createOrderedLineArcArrayAltMethod()
         {
             //9/13 still a mess... moving toward ordering the struct vs. ordering with these methods.
@@ -1304,6 +1344,27 @@ namespace Conversational_Machining_App
             }
         }
 
+        public void createArcListPairs(List<double[]> arcpts)
+        {
+            for (int i = 0; i < arcpts.Count; i++)
+            {
+                List<double[]> tmpList = new List<double[]>();
+                if (i == 0)
+                {
+                    tmpList.Add(arcpts[0]);
+                    tmpList.Add(arcpts[1]);
+                }
+                else
+                {
+                    tmpList.Add(arcpts[i - 1]);
+                    tmpList.Add(arcpts[i]);
+                }
+                arcList.Add(tmpList);
+            }
+        }
+        #endregion
+
+
         public bool lineArcConnection(double lineX, double lineY, double arcX, double arcY)
         {
             double xtol = Math.Abs(lineX - arcX);
@@ -1350,6 +1411,7 @@ namespace Conversational_Machining_App
 
         public void getXYArrays()
         {
+            //This method allows us to quickly find the min and max boundaries used in offset methods
             double[] tmpArrayXPts = new double[lineList.Count * 2 + arcList.Count * 2];
             double[] tmpArrayYPts = new double[lineList.Count * 2 + arcList.Count * 2];
             int i = 0;
@@ -1375,30 +1437,14 @@ namespace Conversational_Machining_App
             pathOffsets.yVal = tmpArrayYPts;
         }
 
-        public void createArcListPairs(List<double[]> arcpts)
-        {
-            for (int i = 0; i < arcpts.Count; i++)
-            {
-                List<double[]> tmpList = new List<double[]>();
-                if (i == 0)
-                {
-                    tmpList.Add(arcpts[0]);
-                    tmpList.Add(arcpts[1]);
-                }
-                else
-                {
-                    tmpList.Add(arcpts[i - 1]);
-                    tmpList.Add(arcpts[i]);
-                }
-                arcList.Add(tmpList);
-            }
-        }
-
         public double distance(double x1, double y1, double x2, double y2)
         {
             return Math.Pow((Math.Pow(x1 - x2, 2) + Math.Pow(y1 - y2, 2)), .5);
         }
 
+        #endregion
+
+        #region DXF Dictionaries
         public void setDict()
         {
             DXFDictionary();

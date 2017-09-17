@@ -75,6 +75,16 @@ namespace Conversational_Machining_App
             GeoDataArray = lclGeoDataArray;
         }
 
+        private void resetOrderedGeoDataList()
+        {
+            List<seg> g = new List<seg>();
+            foreach(seg s in GeoDataArray)
+            {
+                g.Add(s);
+            }
+            GeoData = g;
+    }
+
         public void orderGeoSegments()
         {
             createGeoDataArrayFromList();
@@ -115,6 +125,7 @@ namespace Conversational_Machining_App
             {
                 GeoDataArray[i] = outputGeoDataList[i];
             }
+            resetOrderedGeoDataList();
         }
 
         private void setFirstSeg(double[] cp)
