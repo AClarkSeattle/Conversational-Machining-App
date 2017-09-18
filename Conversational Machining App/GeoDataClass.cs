@@ -61,11 +61,13 @@ namespace Conversational_Machining_App
         }
 
         public List<seg> GeoData = new List<seg>();
+        public seg[] EmptyGeoDataArray;
         public seg[] GeoDataArray;
 
         private void createGeoDataArrayFromList()
         {
             int i = 0;
+            GeoDataArray = null;
             seg[] lclGeoDataArray = new seg[GeoData.Count];
             foreach (seg s in GeoData)
             {

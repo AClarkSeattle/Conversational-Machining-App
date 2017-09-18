@@ -913,16 +913,22 @@ namespace Conversational_Machining_App
         }
 
         private void LoadDXFTextBox_Click(object sender, EventArgs e)
-        {
+        {     
+            openFileDialog2.ShowDialog();
+            openfilepathDXF = openFileDialog2.FileName;
+
+            //Clear old data
             lineList.Clear();
             arcList.Clear();
             arcDataList.Clear();
             combinedOrderedList.Clear();
+            GeometryObjects.Clear();
+            gd.GeoData.Clear();
             plot1.lines.Clear();
             plot1.arcs.Clear();
             plot1.vlines.Clear();
-            openFileDialog2.ShowDialog();
-            openfilepathDXF = openFileDialog2.FileName;
+            //
+
             readDXFtoPTList();
             makePtList();
 
