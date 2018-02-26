@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2013
-VisualStudioVersion = 12.0.21005.1
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Conversational Machining App", "Conversational Machining App\Conversational Machining App.csproj", "{6BE9014B-519A-441A-A4B9-D5AE599C54F0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ComputationalGeometryLibrary", "ComputationalGeometryLibrary\ComputationalGeometryLibrary.csproj", "{493631FD-DC71-4494-BE9D-992AEC75976E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{6BE9014B-519A-441A-A4B9-D5AE599C54F0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6BE9014B-519A-441A-A4B9-D5AE599C54F0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6BE9014B-519A-441A-A4B9-D5AE599C54F0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{493631FD-DC71-4494-BE9D-992AEC75976E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{493631FD-DC71-4494-BE9D-992AEC75976E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{493631FD-DC71-4494-BE9D-992AEC75976E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{493631FD-DC71-4494-BE9D-992AEC75976E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
