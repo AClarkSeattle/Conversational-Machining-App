@@ -112,7 +112,53 @@ namespace ComputationalGeometryLibrary
 
         private bool isArcCPInside(GeoDataClass.seg s)
         {
+            double sweepAngle = 0;
+            sweepAngle = (s.StartingAngle> s.EndingAngle) ? (2 * Math.PI - s.StartingAngle) + s.EndingAngle : s.EndingAngle - s.StartingAngle;
+            double rMultiplier = 1;
+            rMultiplier = (s.Radius > 1) ? s.Radius : 1;
+            double angleIncr = (sweepAngle) / Convert.ToDouble(Convert.ToInt16((10 * rMultiplier)));
+
+            int numberofSections = Convert.ToInt16((sweepAngle) / angleIncr);
+            int sectioncount = 0;
+            double Angle = s.StartingAngle;
+
+            List<double[]> tmpArcList = new List<double[]>();
+
+            while (sectioncount <= numberofSections)
+            {
+                double[] tmpArcPt1 = { 0, 0 };
+                double x = (s.Radius * Math.Cos(Angle)) + s.CenterPtX;
+                double y = (s.Radius * Math.Sin(Angle)) + s.CenterPtY;
+                tmpArcPt1[0] = x;
+                tmpArcPt1[1] = y;
+                tmpArcList.Add(tmpArcPt1);
+                Angle += angleIncr;
+                sectioncount++;
+            }
+            ArcListPairs(tmpArcList);
+
             return true;
         }
-    }
+
+        private List<List<double[]>> ArcListPairs(List<double[]> arcpts)
+        {
+            List<List<double[]>> lclArcList = new List<List<double[]>>();
+            for (int i = 0; i < arcpts.Count; i++)
+            {
+                List<double[]> tmpList = new List<double[]>();
+                if (i == 0)
+                {
+                    tmpList.Add(arcpts[0]);
+                    tmpList.Add(arcpts[1]);
+                }
+                else
+                {
+                    tmpList.Add(arcpts[i - 1]);
+                    tmpList.Add(arcpts[i]);
+                }
+                lclArcList.Add(tmpList);
+            }
+            return lclArcList;
+        }
+}
 }
