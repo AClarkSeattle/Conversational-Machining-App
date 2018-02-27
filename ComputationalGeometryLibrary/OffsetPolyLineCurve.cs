@@ -20,7 +20,7 @@ namespace ComputationalGeometryLibrary
             {
                 if (s.isArc)
                 {
-                    untrimmedOffsetList.Add(OffsetArc(s));
+                    untrimmedOffsetList.Add(OffsetArc(s,offsetdistance));
                 }
                 else
                 {
@@ -30,9 +30,34 @@ namespace ComputationalGeometryLibrary
             return untrimmedOffsetList;
         }
 
-        private GeoDataClass.seg OffsetArc(GeoDataClass.seg seg)
+        private GeoDataClass.seg OffsetArc(GeoDataClass.seg seg, double d, bool offsetInside=true)
         {
             GeoDataClass.seg s = new GeoDataClass.seg();
+
+            s.CenterPtX = seg.CenterPtX;
+            s.CenterPtY = seg.CenterPtY;
+            s.isArc = true;
+
+            double[] sp = { seg.StartingPtX, seg.StartingPtY };
+            double[] ep = { seg.EndPtX, seg.EndPtY };
+            double[] p = { seg.CenterPtX, seg.CenterPtY};
+
+            //need to account for user offset direction (inside/outside)
+            s.Radius = isArcCPInside(seg) == true ? seg.Radius - d : seg.Radius + d;
+
+            double[,] StartPtToCPUnitVector = vm.UnitNormalVectorArcStartToCenter(seg);
+            double[,] EndPtToCPUnitVector = vm.UnitNormalVectorArcEndToCenter(seg);
+
+            //set starting pt x
+            
+            //set starting pt y
+
+            //set end pt x
+
+            //set end pt y
+
+            //get starting angles based on the new points...
+
             return s;
         }
 
@@ -42,37 +67,52 @@ namespace ComputationalGeometryLibrary
         /// <param name="seg"></param>
         /// <param name="d"></param>
         /// <returns></returns>
-        private GeoDataClass.seg OffsetLine(GeoDataClass.seg seg, double d)
+        private GeoDataClass.seg OffsetLine(GeoDataClass.seg seg, double d, bool offsetInside=true)
         {
             GeoDataClass.seg s1 = new GeoDataClass.seg();
             GeoDataClass.seg s2 = new GeoDataClass.seg();
 
             double[,] unitNormalVector = vm.UnitNormalVector(seg);
 
+            //Offset both directions
             s1.StartingPtX = seg.StartingPtX + d * unitNormalVector[0, 0];
             s1.StartingPtY = seg.StartingPtY + d * unitNormalVector[0, 1];
 
             s1.EndPtX = seg.EndPtX + d * unitNormalVector[0, 0];
             s1.EndPtY = seg.EndPtY + d * unitNormalVector[0, 1];
 
+            s2.StartingPtX = seg.StartingPtX + d * unitNormalVector[1, 0];
+            s2.StartingPtY = seg.StartingPtY + d * unitNormalVector[1, 1];
+
+            s2.EndPtX = seg.EndPtX + d * unitNormalVector[1, 0];
+            s2.EndPtY = seg.EndPtY + d * unitNormalVector[1, 1];
+
             double[] sp = {seg.StartingPtX, seg.StartingPtY};
             double[] ep = { seg.EndPtX, seg.EndPtY };
             double[] p = { s1.StartingPtX, s1.StartingPtY };
 
-            if(!il.Left(sp,ep,p))
-            {
-                s2.StartingPtX = seg.StartingPtX + d * unitNormalVector[1, 0];
-                s2.StartingPtY = seg.StartingPtY + d * unitNormalVector[1, 1];
+            //check s1 is inside...
+            bool lclLeft = il.Left(sp, ep, p);
 
-                s2.EndPtX = seg.EndPtX + d * unitNormalVector[1, 0];
-                s2.EndPtY = seg.EndPtY + d * unitNormalVector[1, 1];
+            //return truth
+            if (lclLeft == true && offsetInside == true) return s1;
 
-                return s2;
-            }
-            else
-            {
-                return s1;
-            }
+            if (lclLeft == false && offsetInside == true) return s2;
+
+            if (lclLeft == false && offsetInside == false) return s1;
+
+            if (lclLeft == true && offsetInside == false) return s2;
+
+            #region unreachable
+            //unreachable...
+            GeoDataClass.seg s = new GeoDataClass.seg();
+            return s;
+            #endregion
+        }
+
+        private bool isArcCPInside(GeoDataClass.seg s)
+        {
+            return true;
         }
     }
 }
