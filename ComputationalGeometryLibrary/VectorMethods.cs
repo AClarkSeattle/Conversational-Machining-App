@@ -38,27 +38,24 @@ namespace ComputationalGeometryLibrary
             return DotProduct(A, B) / (Magnitude(A) * Magnitude(B));
         }
 
-        public double[,] UnitNormalVector(GeoDataClass.seg s)
+        public double[] UnitNormalVector(GeoDataClass.seg s)
         {
             //dx = x2 - x1 and dy = y2 - y1, then the normals are(-dy, dx) and(dy, -dx).
             double dx = s.EndPtX - s.StartingPtX;
             double dy = s.EndPtY- s.StartingPtY;
 
-            double[,] normalVector = new double[2,2];
+            double[] normalVector = new double[2];
 
-            double[,] unitnormalVector = new double[2, 2];
+            double[] unitnormalVector = new double[2];
 
-            normalVector[0, 0] = -dy;
-            normalVector[0, 1] = dx;
-            normalVector[1, 0] = dy;
-            normalVector[1, 1] = -dx;
+            normalVector[0] = -dy;
+            normalVector[0] = dx;
 
-            double mag = Magnitude(normalVector[0, 0], normalVector[0, 1], 0);
+            double mag = Magnitude(normalVector[0], normalVector[1], 0);
 
-            unitnormalVector[0, 0] = unitnormalVector[0, 0] / mag;
-            unitnormalVector[0, 1] = unitnormalVector[0, 1] / mag;
-            unitnormalVector[1, 0] = unitnormalVector[1, 0] / mag;
-            unitnormalVector[1, 1] = unitnormalVector[1, 1] / mag;
+            unitnormalVector[0] = unitnormalVector[0] / mag;
+            unitnormalVector[1] = unitnormalVector[1] / mag;
+            
 
             return unitnormalVector;
         }

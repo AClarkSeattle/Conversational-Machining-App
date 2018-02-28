@@ -72,42 +72,55 @@ namespace ComputationalGeometryLibrary
             GeoDataClass.seg s1 = new GeoDataClass.seg();
             GeoDataClass.seg s2 = new GeoDataClass.seg();
 
-            double[,] unitNormalVector = vm.UnitNormalVector(seg);
+            double[] unitNormalVector = vm.UnitNormalVector(seg);
+            double vsign = 1;
+            //Offset
+            s1.StartingPtX = seg.StartingPtX +vsign* d * unitNormalVector[0];
+            s1.StartingPtY = seg.StartingPtY +vsign* d * unitNormalVector[1];
 
-            //Offset both directions
-            s1.StartingPtX = seg.StartingPtX + d * unitNormalVector[0, 0];
-            s1.StartingPtY = seg.StartingPtY + d * unitNormalVector[0, 1];
-
-            s1.EndPtX = seg.EndPtX + d * unitNormalVector[0, 0];
-            s1.EndPtY = seg.EndPtY + d * unitNormalVector[0, 1];
-
-            s2.StartingPtX = seg.StartingPtX + d * unitNormalVector[1, 0];
-            s2.StartingPtY = seg.StartingPtY + d * unitNormalVector[1, 1];
-
-            s2.EndPtX = seg.EndPtX + d * unitNormalVector[1, 0];
-            s2.EndPtY = seg.EndPtY + d * unitNormalVector[1, 1];
+            s1.EndPtX = seg.EndPtX +vsign* d * unitNormalVector[0];
+            s1.EndPtY = seg.EndPtY +vsign* d * unitNormalVector[1];
 
             double[] sp = {seg.StartingPtX, seg.StartingPtY};
             double[] ep = { seg.EndPtX, seg.EndPtY };
             double[] p = { s1.StartingPtX, s1.StartingPtY };
 
-            //check s1 is inside...
+            //check if offset is inside...
             bool lclLeft = il.Left(sp, ep, p);
 
-            //return truth
-            if (lclLeft == true && offsetInside == true) return s1;
-
-            if (lclLeft == false && offsetInside == true) return s2;
-
-            if (lclLeft == false && offsetInside == false) return s1;
-
-            if (lclLeft == true && offsetInside == false) return s2;
-
-            #region unreachable
-            //unreachable...
-            GeoDataClass.seg s = new GeoDataClass.seg();
-            return s;
-            #endregion
+            //return untrimmed seg offset in the direction required by the user
+            if (lclLeft == true)
+            {
+                if(offsetInside==true)
+                {
+                    return s1;
+                }
+                else
+                {
+                    vsign = -1;
+                    s2.StartingPtX = seg.StartingPtX + vsign * d * unitNormalVector[0];
+                    s2.StartingPtY = seg.StartingPtY + vsign * d * unitNormalVector[1];
+                    s2.EndPtX = seg.EndPtX + vsign * d * unitNormalVector[0];
+                    s2.EndPtY = seg.EndPtY + vsign * d * unitNormalVector[1];
+                    return s2;
+                }
+            }
+            else
+            {
+                if (offsetInside == true)
+                {
+                    vsign = -1;
+                    s2.StartingPtX = seg.StartingPtX + vsign * d * unitNormalVector[0];
+                    s2.StartingPtY = seg.StartingPtY + vsign * d * unitNormalVector[1];
+                    s2.EndPtX = seg.EndPtX + vsign * d * unitNormalVector[0];
+                    s2.EndPtY = seg.EndPtY + vsign * d * unitNormalVector[1];
+                    return s2;
+                }
+                else
+                {
+                    return s1;
+                }
+            }
         }
 
         private bool isArcCPInside(GeoDataClass.seg s)
@@ -135,7 +148,8 @@ namespace ComputationalGeometryLibrary
                 Angle += angleIncr;
                 sectioncount++;
             }
-            ArcListPairs(tmpArcList);
+            List<List<double[]>> tmpArcListPairs = new List<List<double[]>>();
+            tmpArcListPairs = ArcListPairs(tmpArcList);
 
             return true;
         }
