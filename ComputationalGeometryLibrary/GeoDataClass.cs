@@ -11,6 +11,8 @@ namespace ComputationalGeometryLibrary
         public struct seg
         {
             public bool isArc { get; set; }
+            public bool isArcCenterPtInside { get; set; }
+            
             public int segNumber { get; set; }
 
             public double StartingPtX { get; set; }
@@ -23,10 +25,30 @@ namespace ComputationalGeometryLibrary
             public double StartingAngle { get; set; }//degrees
             public double EndingAngle { get; set; }//degrees
 
+            public seg setArcMidInside()
+            {
+                seg s = new seg();
+                s.isArc = isArc;
+                s.isArc = true;
+                s.segNumber = segNumber;
+                s.StartingPtX = EndPtX;
+                s.StartingPtY = EndPtY;
+                s.EndPtX = StartingPtX;
+                s.EndPtY = StartingPtY;
+                s.CenterPtX = CenterPtX;
+                s.CenterPtY = CenterPtY;
+                s.Radius = Radius;
+                s.StartingAngle = StartingAngle;
+                s.EndingAngle = EndingAngle;
+
+                return s;
+            }
+
             public seg reverseLine()
             {
                 seg s = new seg();
                 s.isArc = isArc;
+                s.isArc = isArcCenterPtInside;
                 s.segNumber = segNumber;
                 s.StartingPtX = EndPtX;
                 s.StartingPtY = EndPtY;
@@ -45,6 +67,7 @@ namespace ComputationalGeometryLibrary
             {
                 seg s = new seg();
                 s.isArc = isArc;
+                s.isArcCenterPtInside = isArcCenterPtInside;
                 s.segNumber = i;
                 s.StartingPtX = StartingPtX;
                 s.StartingPtY = StartingPtY;
@@ -61,6 +84,7 @@ namespace ComputationalGeometryLibrary
         }
 
         public List<seg> GeoData = new List<seg>();
+        public List<double[]> VertexList = new List<double[]>();
         public seg[] EmptyGeoDataArray;
         public seg[] GeoDataArray;
 
@@ -93,7 +117,7 @@ namespace ComputationalGeometryLibrary
             GeoData = g;
         }
 
-        public void orderGeoSegments()
+        public void OrderGeoSegments()
         {
             //is this ordering counterclockwise??
             createGeoDataArrayFromList();
@@ -139,7 +163,7 @@ namespace ComputationalGeometryLibrary
 
         private void setFirstSeg(double[] cp)
         {
-            //this works to set the orientation of line.
+            //this works to set the orientation of the polyline.
             //in DXF files, arcs are already encoded in a CCW fashion.
             double y1 = GeoDataArray[0].StartingPtY - cp[1];
             double x1 = GeoDataArray[0].StartingPtX - cp[0];
@@ -165,6 +189,75 @@ namespace ComputationalGeometryLibrary
             }
             index = 0;
             return false;
+        }
+
+        public void PopulateVertexList()
+        {
+            VertexList.Clear();
+            List<double[]> tmpVertexList = new List<double[]>();
+            foreach (seg s in GeoData)
+            {
+                double[] startpt = new double[2];
+                double[] endpt = new double[2];
+                double[] midarcpt = new double[2];
+                if (s.isArc)
+                {
+                    startpt[0] = s.StartingPtX;
+                    startpt[1] = s.StartingPtY;
+                    endpt[0] = s.EndPtX;
+                    endpt[1] = s.EndPtY;
+                    midarcpt = ArcMidPoint(s);
+                    tmpVertexList.Add(startpt);
+                    tmpVertexList.Add(endpt);
+                    tmpVertexList.Add(midarcpt);
+                }
+                else
+                {
+                    startpt[0] = s.StartingPtX;
+                    startpt[1] = s.StartingPtY;
+                    endpt[0] = s.EndPtX;
+                    endpt[1] = s.EndPtY;
+                    tmpVertexList.Add(startpt);
+                    tmpVertexList.Add(endpt);
+                }
+            }
+            VertexList = SetUniqueVertexList(tmpVertexList);
+        }
+
+        private List<double[]> SetUniqueVertexList(List<double[]> NonUniqueList)
+        {
+            List<double[]> UniqueVertexList = new List<double[]>();
+            UniqueVertexList.Add(NonUniqueList[0]);
+            
+            for(int i=1;i<NonUniqueList.Count;i++)
+            {
+                int count = 0;
+                foreach(double[] uniquePt in UniqueVertexList)
+                {
+                    if (distance(NonUniqueList[i], uniquePt) < .0001)
+                        count++;               
+                }
+                if (count == 0) UniqueVertexList.Add(NonUniqueList[i]);          
+            }
+
+            return UniqueVertexList;
+        }
+
+        public double distance(double[] pt1, double[] pt2)
+        {
+            double dist = Math.Sqrt(Math.Pow(pt1[0] - pt2[0], 2) + Math.Pow(pt1[1] - pt2[1], 2));
+            return dist;
+        }
+
+        private double[] ArcMidPoint(seg seg)
+        {
+            double[] midpt = new double[2];
+            double startAngle = seg.StartingAngle * Math.PI / 180;//start angle
+            double endAngle = seg.EndingAngle * Math.PI / 180;//end angle
+            double sweepAngle = (startAngle > endAngle) ? (2 * Math.PI - startAngle) + endAngle : endAngle - startAngle;
+            midpt[0] = (seg.Radius * Math.Cos(startAngle + sweepAngle / 2)) + seg.CenterPtX;
+            midpt[1] = (seg.Radius * Math.Sin(startAngle + sweepAngle / 2)) + seg.CenterPtY;
+            return midpt;
         }
 
         private double[] innerpoint()

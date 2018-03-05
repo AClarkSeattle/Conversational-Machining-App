@@ -53,61 +53,36 @@ namespace ComputationalGeometryLibrary
 
             double mag = Magnitude(normalVector[0], normalVector[1], 0);
 
-            unitnormalVector[0] = unitnormalVector[0] / mag;
-            unitnormalVector[1] = unitnormalVector[1] / mag;
+            unitnormalVector[0] = normalVector[0] / mag;
+            unitnormalVector[1] = normalVector[1] / mag;
             
-
             return unitnormalVector;
         }
 
-        public double[,] UnitNormalVectorArcStartToCenter(GeoDataClass.seg s)
+        public double[,] UnitVectorArcPtToCenter(GeoDataClass.seg s)
         {
-            //dx = x2 - x1 and dy = y2 - y1, then the normals are(-dy, dx) and(dy, -dx).
-            double dx = s.CenterPtX - s.StartingPtX;
-            double dy = s.CenterPtY - s.StartingPtY;
+            double dx_sp = s.CenterPtX - s.StartingPtX;
+            double dy_sp = s.CenterPtY - s.StartingPtY;
+            double dx_ep = s.CenterPtX - s.EndPtX;
+            double dy_ep = s.CenterPtY - s.EndPtY;
 
-            double[,] normalVector = new double[2, 2];
+            double[,] Vector = new double[2, 2];
 
-            double[,] unitnormalVector = new double[2, 2];
+            double[,] unitVector = new double[2, 2];
 
-            normalVector[0, 0] = -dy;
-            normalVector[0, 1] = dx;
-            normalVector[1, 0] = dy;
-            normalVector[1, 1] = -dx;
+            Vector[0, 0] = dx_sp;
+            Vector[0, 1] = dy_sp;
+            Vector[1, 0] = dx_ep;
+            Vector[1, 1] = dy_ep;
 
-            double mag = Magnitude(normalVector[0, 0], normalVector[0, 1], 0);
+            double mag = Magnitude(Vector[0, 0], Vector[0, 1], 0);
 
-            unitnormalVector[0, 0] = unitnormalVector[0, 0] / mag;
-            unitnormalVector[0, 1] = unitnormalVector[0, 1] / mag;
-            unitnormalVector[1, 0] = unitnormalVector[1, 0] / mag;
-            unitnormalVector[1, 1] = unitnormalVector[1, 1] / mag;
+            unitVector[0, 0] = Vector[0, 0] / mag;
+            unitVector[0, 1] = Vector[0, 1] / mag;
+            unitVector[1, 0] = Vector[1, 0] / mag;
+            unitVector[1, 1] = Vector[1, 1] / mag;
 
-            return unitnormalVector;
-        }
-
-        public double[,] UnitNormalVectorArcEndToCenter(GeoDataClass.seg s)
-        {
-            //dx = x2 - x1 and dy = y2 - y1, then the normals are(-dy, dx) and(dy, -dx).
-            double dx = s.CenterPtX - s.StartingPtX;
-            double dy = s.CenterPtY - s.StartingPtY;
-
-            double[,] normalVector = new double[2, 2];
-
-            double[,] unitnormalVector = new double[2, 2];
-
-            normalVector[0, 0] = -dy;
-            normalVector[0, 1] = dx;
-            normalVector[1, 0] = dy;
-            normalVector[1, 1] = -dx;
-            
-            double mag = Magnitude(normalVector[0, 0], normalVector[0, 1], 0);
-
-            unitnormalVector[0, 0] = unitnormalVector[0, 0] / mag;
-            unitnormalVector[0, 1] = unitnormalVector[0, 1] / mag;
-            unitnormalVector[1, 0] = unitnormalVector[1, 0] / mag;
-            unitnormalVector[1, 1] = unitnormalVector[1, 1] / mag;
-
-            return unitnormalVector;
+            return unitVector;
         }
     }
 }
