@@ -262,6 +262,9 @@ namespace ComputationalGeometryLibrary
 
         private double[] innerpoint()
         {
+            //returns an arbitrary point that is definitely inside the figure
+            //this is not a mathematically rigorous method... needs refinement
+            //seems to work ok for convex figures... even very weird ones
             double[] retVal = new double[2];
             double Xtotal = 0;
             double Ytotal = 0;

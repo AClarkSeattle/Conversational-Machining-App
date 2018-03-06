@@ -14,7 +14,8 @@ namespace ConsoleTestProject
         {
            DXFTools dxf = new DXFTools();
            GeoDataClass gd = new GeoDataClass();
-           gd.GeoData = dxf.ProcessDXFToSegData("dxf20.dxf");
+            gd.GeoData = dxf.ProcessDXFToSegData("dxf20.dxf");
+            //gd.GeoData = dxf.ProcessDXFToSegData("dxf21.dxf");
 
             gd.OrderGeoSegments();
             gd.PopulateVertexList();
