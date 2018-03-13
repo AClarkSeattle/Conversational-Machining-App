@@ -79,12 +79,12 @@ namespace ComputationalGeometryLibrary
         //      Return:  wn = the winding number (=0 only when P is outside)
         #endregion
 
-        private int wn_PnPoly(double[] pt, List<double[]> Vertex)
+        public int wn_PnPoly(double[] pt, List<double[]> Vertex)
         {
             int wn = 0;    // the  winding number counter
 
             // loop through all edges of the polygon
-            for (int i = 0; i < Vertex.Count; i++)
+            for (int i = 0; i < Vertex.Count-1; i++)
             {   // edge from V[i] to  V[i+1]
                 if (Vertex[i][1] <= pt[1])
                 {          // start y <= P.y

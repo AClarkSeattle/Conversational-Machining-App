@@ -49,7 +49,7 @@ namespace ComputationalGeometryLibrary
             double[] unitnormalVector = new double[2];
 
             normalVector[0] = -dy;
-            normalVector[0] = dx;
+            normalVector[1] = dx;
 
             double mag = Magnitude(normalVector[0], normalVector[1], 0);
 

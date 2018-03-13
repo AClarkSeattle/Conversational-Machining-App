@@ -25,16 +25,16 @@ namespace ComputationalGeometryLibrary
             public double StartingAngle { get; set; }//degrees
             public double EndingAngle { get; set; }//degrees
 
-            public seg setArcMidInside()
+            public seg setArcCPInside(bool isInside)
             {
                 seg s = new seg();
                 s.isArc = isArc;
-                s.isArc = true;
+                s.isArcCenterPtInside = isInside;
                 s.segNumber = segNumber;
-                s.StartingPtX = EndPtX;
-                s.StartingPtY = EndPtY;
-                s.EndPtX = StartingPtX;
-                s.EndPtY = StartingPtY;
+                s.StartingPtX = StartingPtX;
+                s.StartingPtY = StartingPtY ;
+                s.EndPtX = EndPtX;
+                s.EndPtY = EndPtY;
                 s.CenterPtX = CenterPtX;
                 s.CenterPtY = CenterPtY;
                 s.Radius = Radius;
@@ -207,9 +207,10 @@ namespace ComputationalGeometryLibrary
                     endpt[0] = s.EndPtX;
                     endpt[1] = s.EndPtY;
                     midarcpt = ArcMidPoint(s);
+                    //Order Matters for Winding Number Check
                     tmpVertexList.Add(startpt);
-                    tmpVertexList.Add(endpt);
                     tmpVertexList.Add(midarcpt);
+                    tmpVertexList.Add(endpt);             
                 }
                 else
                 {
