@@ -14,9 +14,9 @@ namespace ConsoleTestProject
         {
             DXFTools dxf = new DXFTools();
             GeoDataClass gd = new GeoDataClass();
-            List<GeoDataClass.seg> OffsetCurve = new List<GeoDataClass.seg>();
+            List<GeoDataClass.seg> UntrimmedOffsetCurve = new List<GeoDataClass.seg>();
             List<List<GeoDataClass.seg>> OffsetCollection = new List<List<GeoDataClass.seg>>();
-            gd.GeoData = dxf.ProcessDXFToSegData("dxf20.dxf");
+            gd.GeoData = dxf.ProcessDXFToSegData("TestPocket.dxf");
             //gd.GeoData = dxf.ProcessDXFToSegData("dxf21.dxf");
 
             gd.OrderGeoSegments();
@@ -79,10 +79,10 @@ namespace ConsoleTestProject
             Console.WriteLine("---------------------------------------------");
 
             OffsetPolyLineCurve OPC = new OffsetPolyLineCurve();
-            OffsetCurve = OPC.GetUntrimmedOffsetCurve(gd.GeoData,.25);
+            UntrimmedOffsetCurve = OPC.GetUntrimmedOffsetCurve(gd.GeoData,.25);
 
             #region Check GeoData of Offset Curve
-            foreach (GeoDataClass.seg s in OffsetCurve)
+            foreach (GeoDataClass.seg s in UntrimmedOffsetCurve)
             {
                 Console.WriteLine("Seg Number = " + s.segNumber.ToString());
                 Console.WriteLine("Is Arc = " + s.isArc.ToString());

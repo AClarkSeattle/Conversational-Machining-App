@@ -144,7 +144,7 @@ namespace ComputationalGeometryLibrary
                         string line = reader.ReadLine();
                         if (dxfdictionary.ContainsKey(line))
                         {
-                            string[] tmpStr = new string[20];
+                            string[] tmpStr = new string[200];
                             if (line == "AcDbCircle")
                             {
                                 tmpStr[0] = line;

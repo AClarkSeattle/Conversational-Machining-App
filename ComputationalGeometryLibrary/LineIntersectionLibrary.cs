@@ -115,7 +115,57 @@ namespace ComputationalGeometryLibrary
             return dist;
         }
 
-        public double[] lineCircleIntersectionPts(double m, double b, double h, double k, double r, out bool isTangent)
+        public bool LineSegementsIntersect(Vector p, Vector p2, Vector q, Vector q2, out Vector intersection, bool considerOverlapAsIntersect = false)
+        {
+            intersection = new Vector();
+
+            var r = p2 - p;
+            var s = q2 - q;
+            var rxs = r.Cross(s);
+            var qpxr = (q - p).Cross(r);
+
+            // If r x s = 0 and (q - p) x r = 0, then the two lines are collinear.
+            if (rxs.IsZero() && qpxr.IsZero())
+            {
+                // 1. If either  0 <= (q - p) * r <= r * r or 0 <= (p - q) * s <= * s
+                // then the two lines are overlapping,
+                if (considerOverlapAsIntersect)
+                    if ((0 <= (q - p) * r && (q - p) * r <= r * r) || (0 <= (p - q) * s && (p - q) * s <= s * s))
+                        return true;
+
+                // 2. If neither 0 <= (q - p) * r ≤ r * r nor 0 <= (p - q) * s <= s * s
+                // then the two lines are collinear but disjoint.
+                // No need to implement this expression, as it follows from the expression above.
+                return false;
+            }
+
+            // 3. If r x s = 0 and (q - p) x r != 0, then the two lines are parallel and non-intersecting.
+            if (rxs.IsZero() && !qpxr.IsZero())
+                return false;
+
+            // t = (q - p) x s / (r x s)
+            var t = (q - p).Cross(s) / rxs;
+
+            // u = (q - p) x r / (r x s)
+
+            var u = (q - p).Cross(r) / rxs;
+
+            // 4. If r x s != 0 and 0 <= t <= 1 and 0 <= u <= 1
+            // the two line segments meet at the point p + t r = q + u s.
+            if (!rxs.IsZero() && (0 <= t && t <= 1) && (0 <= u && u <= 1))
+            {
+                // We can calculate the intersection point using either t or u.
+                intersection = p + t * r;
+
+                // An intersection was found.
+                return true;
+            }
+
+            // 5. Otherwise, the two line segments are not parallel but do not intersect.
+            return false;
+        }
+
+    public double[] lineCircleIntersectionPts(double m, double b, double h, double k, double r, out bool isTangent)
         {
             //line segments that are tangent to the arc will have two identical intersection pts.
             double[] intersectionPts = new double[4];
@@ -163,6 +213,37 @@ namespace ComputationalGeometryLibrary
             return intersectionPts;
         }
 
+        public double[] lineCircleIntersectionPts(GeoDataClass.seg s1, GeoDataClass.seg s2, out bool isTangent)
+        {
+            double[] intersectionPts = new double[4];
+            if(s1.isArc)
+            {
+                if(s2.StartingPtX==s2.EndPtX)
+                {
+                    intersectionPts=lineCircleIntersectionPts(s2.StartingPtX, s1.CenterPtX, s1.CenterPtY, s1.Radius, out isTangent);
+                }
+                else
+                {
+                    double[] mb = slopeInterceptLine(s2.StartingPtX, s2.StartingPtX, s2.EndPtX, s2.EndPtY);
+                    intersectionPts = lineCircleIntersectionPts(mb[0], mb[1], s1.CenterPtX, s1.CenterPtY, s1.Radius, out isTangent);
+                }
+            }
+            if(s2.isArc)
+            {
+                if (s1.StartingPtX == s1.EndPtX)
+                {
+                    intersectionPts = lineCircleIntersectionPts(s1.StartingPtX, s2.CenterPtX, s2.CenterPtY, s2.Radius, out isTangent);
+                }
+                else
+                {
+                    double[] mb = slopeInterceptLine(s1.StartingPtX, s1.StartingPtX, s1.EndPtX, s1.EndPtY);
+                    intersectionPts = lineCircleIntersectionPts(mb[0], mb[1], s2.CenterPtX, s2.CenterPtY, s2.Radius, out isTangent);
+                }
+            }     
+            isTangent = false;
+            return intersectionPts;
+        }
+
         public double[] slopeInterceptLine(double x1, double y1, double x2, double y2)
         {
             double[] mb = new double[2];
@@ -195,10 +276,105 @@ namespace ComputationalGeometryLibrary
             return coordinates;
         }
 
-        public double[] arcArcIntersectionPts()
+        public double[] lineLineIntersectionPts(GeoDataClass.seg s1, GeoDataClass.seg s2, out bool noIntersection)
         {
+            double x1 = s1.StartingPtX;
+            double y1 = s1.StartingPtY;
+            double x2 = s1.EndPtX;
+            double y2 = s1.EndPtY;
+            double x3 = s2.StartingPtX;
+            double y3 = s2.StartingPtY;
+            double x4 = s2.EndPtX;
+            double y4 = s2.EndPtY;
+
+            double[] coordinates = new double[2];
+            double denominator = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+            if (denominator == 0)
+            {
+                noIntersection = true;
+                return coordinates;
+            }
+
+            double Px = ((x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4)) / denominator;
+            double Py = ((x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4)) / denominator;
+
+            coordinates[0] = Px;
+            coordinates[1] = Py;
+
+            noIntersection = false;
+            return coordinates;
+        }
+
+        public double[] arcArcIntersectionPts(GeoDataClass.seg s1, GeoDataClass.seg s2)
+        {
+            //To Do...
+            //Are the arcs overlapping? ie same center x,y same radius?
+            //Are the arcs tangent? ie one intersection pt?
+            //Are the arcs intersecting or is it a false intersection?
+
             double[] ret = new double[4];
             return ret; 
         }
+
+        /// <summary>
+        /// Extended Intersection Pt
+        /// </summary>
+        /// <param name="s1"></param>
+        /// <param name="s2"></param>
+        /// <returns></returns>
+        public double[] ExtendedIntersection(GeoDataClass.seg s1, GeoDataClass.seg s2)
+        {
+            double[] pt = new double[2];
+            return pt;
+        }
+
+        /// <summary>
+        /// False Intersection Point
+        /// </summary>
+        /// <param name="s1"></param>
+        /// <param name="s2"></param>
+        /// <returns></returns>
+        public bool FIP(GeoDataClass.seg s1, GeoDataClass.seg s2)
+        {
+            //To Do
+            return true;
+        }
+
+        /// <summary>
+        /// Positive False Intersection Point
+        /// </summary>
+        /// <param name="s1"></param>
+        /// <param name="s2"></param>
+        /// <returns></returns>
+        public bool PFIP(GeoDataClass.seg s1, GeoDataClass.seg s2)
+        {
+            //Construct a ray from s1 to s2
+            //If pt is on the ray then PFIP otherwise NFIP (other direction)
+            
+
+            return true;
+        }
+         
+        /// <summary>
+        /// True Intersection Point: Intersection Pt Obtained by Extending is on the Line or Arc Segment
+        /// </summary>
+        /// <param name="s1"></param>
+        /// <param name="s2"></param>
+        /// <returns></returns>
+        public bool TIP(GeoDataClass.seg s1, GeoDataClass.seg s2)
+        {
+            //To Do
+            return true;
+        }
+
+        /// <summary>
+        /// Generat closest point pair
+        /// </summary>
+        public void GCPP()
+        {
+
+        }
+
+
     }
 }

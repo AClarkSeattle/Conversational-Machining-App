@@ -34,7 +34,7 @@ namespace ComputationalGeometryLibrary
         private GeoDataClass.seg OffsetArc(GeoDataClass.seg seg, double d, bool offsetInside=true)
         {
             GeoDataClass.seg s = new GeoDataClass.seg();
-
+            s.segNumber = seg.segNumber;
             s.CenterPtX = seg.CenterPtX;
             s.CenterPtY = seg.CenterPtY;
             s.isArc = true;
@@ -85,6 +85,8 @@ namespace ComputationalGeometryLibrary
 
             double[] unitNormalVector = vm.UnitNormalVector(seg);
             double vsign = 1;
+            s1.segNumber = seg.segNumber;
+            s2.segNumber = seg.segNumber;
             //Offset
             s1.StartingPtX = seg.StartingPtX +vsign* d * unitNormalVector[0];
             s1.StartingPtY = seg.StartingPtY +vsign* d * unitNormalVector[1];

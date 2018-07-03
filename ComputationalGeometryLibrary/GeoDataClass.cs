@@ -24,6 +24,7 @@ namespace ComputationalGeometryLibrary
             public double Radius { get; set; }
             public double StartingAngle { get; set; }//degrees
             public double EndingAngle { get; set; }//degrees
+            public double Z { get; set; }
 
             public seg setArcCPInside(bool isInside)
             {
@@ -80,6 +81,18 @@ namespace ComputationalGeometryLibrary
                 s.EndingAngle = EndingAngle;
 
                 return s;
+            }
+
+            public Vector StartVector()
+            {
+                Vector v = new Vector(StartingPtX, StartingPtY);
+                return v;
+            }
+
+            public Vector EndVector()
+            {
+                Vector v = new Vector(EndPtX, EndPtY);
+                return v;
             }
         }
 

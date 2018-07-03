@@ -1,0 +1,25 @@
+﻿<Window x:Class="ConversationalMachiningAppWPF.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:ConversationalMachiningAppWPF"
+        xmlns:h="http://helix-toolkit.org/wpf"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="350" Width="525">
+    
+    
+    
+    <Grid>
+        <h:HelixViewport3D x:Name="viewport3D" ViewCubeHeight="150" ViewCubeWidth="150" ViewCubeVerticalPosition="Bottom" CoordinateSystemLabelForeground="White" CoordinateSystemVerticalPosition="Center" CoordinateSystemHorizontalPosition="Right" CoordinateSystemHeight="150" CoordinateSystemWidth="150" RenderOptions.BitmapScalingMode="HighQuality" RenderOptions.EdgeMode="Unspecified" BorderBrush="Black" BorderThickness="5" ShowCoordinateSystem="True" ShowCameraInfo="True">
+            <h:HelixViewport3D.Background>
+                <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
+                    <GradientStop Color="Black">
+                    </GradientStop>
+                </LinearGradientBrush>
+            </h:HelixViewport3D.Background>
+        <h:DefaultLights/>
+            <h:GridLinesVisual3D Width="10" Length="10" Thickness=".01" MinorDistance=".5" MajorDistance="1" Fill="Yellow"/>
+        </h:HelixViewport3D>
+    </Grid>
+</Window>
